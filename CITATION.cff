@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: >-
+  如果 Psychostat 对你的教学或研究有帮助，请引用本软件。
+  If Psychostat is useful in your teaching or research, please cite it.
+title: Psychostat
+authors:
+  - name: Psychostat contributors
+type: software
+version: 0.1.0
+date-released: '2026-09-16'
+license: MIT
+# 发布到远端仓库后请补上这一行（换成你的实际地址）：
+# repository-code: https://github.com/<your-account>/psychostat
+description: >-
+  心理统计与测量工具箱：三大分支（心理统计 / 经典测量理论 CTT / 项目反应理论 IRT），
+  从数据清洗到 Word 结果报告的一键分析，附 SPSS 对照、向导式图形界面与 AI 智能体静默调用接口。
+  A teaching-oriented psychometrics toolkit (stats / CTT / IRT) with wizard GUI,
+  simulated demos, AI-agent silent mode and Word result reports.
+keywords:
+  - psychometrics
+  - statistics education
+  - CTT
+  - IRT
+  - SPSS
+  - R

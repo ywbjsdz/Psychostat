@@ -1,0 +1,17 @@
+# IRT-C（探索路线 EIFA）：二维 GRM 数据（1000 人 × 24 题，每维 12 题；维度间相关 .45）
+# 用法：Rscript scripts/irt_generic_pipeline.R --config examples/simulated_datasets/<本文件>
+input:
+  mode: file
+  path: "./irt_C_multidimensional_grm_n1000_items24.csv"
+  item_columns: auto
+  missing: none            # none 与 pairwise 等价；listwise 会先删人
+analysis:
+  model: mirt
+  mirt_mode: eifa
+  selection_criterion: BIC
+  compute_m2: true
+  dimension_range: 1-3       # 试 1..3 维，按 BIC 选维度
+output:
+  directory: "../../outputs"
+  report_languages: [zh, en]
+  save_model_object: true

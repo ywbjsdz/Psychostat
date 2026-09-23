@@ -1,0 +1,22 @@
+{
+  "input": {
+    "mode": "file",
+    "path": "./data/ctt_wrong_coding_0to4.csv",
+    "id_column": "participant_id",
+    "item_columns": "auto"
+  },
+  "cleaning": {
+    "scale_maximum": 5,
+    "reverse_items": [
+      "Item01"
+    ]
+  },
+  "analysis": {
+    "goal": "quality"
+  },
+  "output": {
+    "directory": "../outputs",
+    "project_label": "e2e_ctt_wrong_coding",
+    "report_language": "zh"
+  }
+}

@@ -1,0 +1,13 @@
+# IRT-F（显式题目列版）：把 12 列全部声明为题目，用于观察数据体检的 fatal 判定
+# 预期：Item10（零方差）与 Item12（全缺失）触发 fatal，体检阻止拟合
+input:
+  mode: file
+  path: "./irt_F_preflight_problems_n200_items12.csv"
+  item_columns: [Item01, Item02, Item03, Item04, Item05, Item06, Item07, Item08, Item09, Item10,
+                 Item11, Item12]
+  missing: none
+analysis:
+  model: 2pl
+output:
+  directory: "../../outputs"
+  project_label: irt_F_explicit

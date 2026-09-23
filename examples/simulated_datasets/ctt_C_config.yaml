@@ -1,0 +1,27 @@
+# CTT-C：问题数据（400 人 × 16 题；含 1 道无关题、1 道双重载荷题、1 道低载荷题 + 各类脏作答）
+# 预期：清洗报告显示注意检验失败/过快作答/高缺失被删除（直线作答与极端值只标记）；
+#       EFA 给出 suggest_delete 建议清单（Item07 / Item08 / Item16），但**不会自动删题**。
+input:
+  mode: file
+  path: "./ctt_C_problem_items_n400_items16.csv"
+  id_column: participant_id
+  item_columns: [Item01, Item02, Item03, Item04, Item05, Item06, Item07, Item08, Item09, Item10,
+                 Item11, Item12, Item13, Item14, Item15, Item16]
+cleaning:
+  scale_maximum: 5
+  reverse_items: []
+  missing_5_to_20: median_impute
+  attention_item: attention_check
+  attention_correct_value: 3
+  response_time_column: response_time_sec
+  minimum_response_seconds: 45
+  straightline_action: flag
+  extreme_action: flag
+analysis:
+  goal: efa
+  rotation: promax
+  n_factors: auto
+output:
+  directory: "../../outputs"
+  project_label: ctt_C
+  report_language: zh

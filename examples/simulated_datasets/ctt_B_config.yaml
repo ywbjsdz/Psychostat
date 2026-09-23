@@ -1,0 +1,28 @@
+# CTT-B：完整问卷（500 人 × 20 题 × 3 维；含 2 道反向题、注意检验、反应时、效标、已知组、1.5% 缺失）
+# 注意：务必声明 attention_item 与 response_time_column，否则注意检验题会被当成量表题目纳入分析
+input:
+  mode: file
+  path: "./ctt_B_full_survey_n500_items20.csv"
+  id_column: participant_id
+  item_columns: [Item01, Item02, Item03, Item04, Item05, Item06, Item07, Item08, Item09, Item10,
+                 Item11, Item12, Item13, Item14, Item15, Item16, Item17, Item18, Item19, Item20]
+cleaning:
+  scale_maximum: 5
+  reverse_items: [Item07, Item15]
+  missing_5_to_20: median_impute
+  attention_item: attention_check
+  attention_correct_value: 3
+  response_time_column: response_time_sec
+  minimum_response_seconds: 45
+  straightline_action: flag
+  extreme_action: flag
+analysis:
+  goal: cfa                      # 换成 efa 可探索结构；quality 只做质量检查
+  cfa_mapping: "./ctt_B_cfa_mapping.csv"
+  criterion_column: criterion
+  criterion_direction: positive
+  known_group_column: known_group
+output:
+  directory: "../../outputs"
+  project_label: ctt_B
+  report_language: zh

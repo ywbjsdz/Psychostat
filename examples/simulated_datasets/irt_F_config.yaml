@@ -1,0 +1,13 @@
+# IRT-F：数据体检演示（故意含 1 道零方差题 Item10、1 道全缺失题 Item12、1 道稀有类别题 Item11）
+# 重要：item_columns 用 auto 时，零方差列与全缺失列会被“自动识别”直接排除（不报致命错误）；
+#       只有**显式列出题目列**，体检才会把零方差/全缺失判为 fatal —— 两个配置都在本目录，可对比。
+# 用法：先跑  Rscript scripts/irt_preflight.R --config examples/simulated_datasets/irt_F_config.yaml
+input:
+  mode: file
+  path: "./irt_F_preflight_problems_n200_items12.csv"
+  missing: none
+analysis:
+  model: 2pl
+output:
+  directory: "../../outputs"
+  project_label: irt_F

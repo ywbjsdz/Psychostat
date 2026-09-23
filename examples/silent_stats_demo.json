@@ -1,0 +1,8 @@
+{
+  "method": ["independent_t", "one_way_anova"],
+  "input": { "mode": "simulate", "path": null },
+  "variables": {},
+  "analysis": { "alpha": 0.05, "posthoc": ["lsd", "tukey", "bonferroni"], "correlation_method": "both" },
+  "simulation": { "seed": 20260904, "n_per_group": 30 },
+  "output": { "directory": "../outputs", "project_label": "silent_stats_demo", "report_language": "zh" }
+}

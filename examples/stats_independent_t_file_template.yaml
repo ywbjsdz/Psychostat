@@ -1,0 +1,14 @@
+# 示例：用自己的数据做独立样本t检验（把 input.path 和 variables.group/dv 改成你的列名）
+method: [independent_t]
+input:
+  mode: file
+  path: "my_data.csv"
+variables:
+  dv: score          # 连续因变量列名
+  group: gender      # 二分分组列名
+analysis:
+  alpha: 0.05
+output:
+  directory: outputs
+  project_label: my_t_test
+  report_language: zh

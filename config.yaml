@@ -1,0 +1,40 @@
+# Generic IRT analysis configuration. Paths may be absolute or relative to this file.
+input:
+  mode: simulate                 # file | simulate
+  path: ""                       # required when mode: file; CSV, XLSX/XLS, or SAV
+  id_column: null
+  item_columns: auto             # auto or a YAML list of item column names
+  missing: none                  # none | listwise | pairwise (see README before choosing)
+
+analysis:
+  model: grm                     # auto | rasch | 2pl | 3pl | grm | mirt
+  compare_models: [grm]          # auto or a list, e.g. [rasch, 2pl, 3pl]
+  dimension_count: auto          # legacy MIRT / automatic models: auto or a positive integer
+  mirt_mode: eifa                # eifa (exploratory) | cifa (confirmatory); used when model: mirt
+  mirt_item_model: auto          # auto: polytomous=multidimensional GRM, binary=multidimensional 2PL; 3pl for binary data only
+  dimension_range: auto          # EIFA: auto or a range such as 1-3 (BIC selects the best dimension count)
+  loading_matrix: null           # CIFA: CSV path with two columns named item,dimension
+  max_auto_dimensions: 4
+  dimension_mapping: null        # legacy CIFA mapping; loading_matrix is easier for new users
+  estimator: EM                  # EM | MHRM | QMCEM
+  max_iterations: 500
+  theta_min: -3
+  theta_max: 3
+  theta_points: 121
+  selection_criterion: BIC
+  allow_3pl: false               # enable only when guessing is substantively plausible
+  compute_m2: false              # set true for a publication-ready absolute-fit test
+
+output:
+  directory: outputs
+  project_label: irt_demo
+  report_languages: [zh, en]
+  save_model_object: true
+
+simulation:
+  model: grm                     # rasch | 2pl | 3pl | grm | mirt
+  n_persons: 200
+  n_items: 12
+  n_dimensions: 2
+  response_categories: 5
+  seed: 20260815

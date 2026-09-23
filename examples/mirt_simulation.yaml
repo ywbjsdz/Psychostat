@@ -1,0 +1,6 @@
+input: {mode: simulate, item_columns: auto}
+analysis: {model: mirt, compare_models: [grm, mirt], dimension_count: 2, estimator: EM, max_iterations: 200, compute_m2: false}
+# 注意：output.directory / project_label 的值请加英文引号，例如 directory: "../outputs"。
+# YAML 裸写 . 、no、on、1e5 之类的值会被解析成 NA/逻辑/数字，导致输出路径或项目名错误。
+output: {directory: ../outputs, project_label: sim_mirt, report_languages: [zh, en], save_model_object: true}
+simulation: {model: mirt, n_persons: 150, n_items: 10, n_dimensions: 2, response_categories: 5, seed: 105}

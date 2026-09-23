@@ -1,0 +1,10 @@
+# Psychostat —— Python 依赖（用于生成 Word 结果报告；未安装时分析结果不受影响，仅跳过 Word 报告）
+# 安装：pip install -r requirements.txt
+pandas>=2.0
+python-docx>=1.1
+
+# 说明：统计核心为 R，首次运行任一启动器时会自动安装所需 R 包
+# （stats: yaml jsonlite car emmeans nortest pwr ggplot2 readxl haven MASS；
+#  ctt: psych lavaan GPArotation ggplot2 readxl haven yaml jsonlite MASS（CFA 路径图另需可选包 semPlot）；
+#  irt: mirt psych ggplot2 readxl haven yaml jsonlite，详见各启动器内的包清单），
+# 也可手动执行：Rscript -e "install.packages(c('yaml','jsonlite','car','emmeans','nortest','pwr','ggplot2','readxl','haven','MASS'))"

@@ -1,0 +1,12 @@
+{
+  "input": { "mode": "file", "path": "data/e2e_mgrm_responses.csv", "id_column": null, "item_columns": "auto", "missing": "none" },
+  "analysis": {
+    "model": "mirt", "mirt_mode": "cifa", "mirt_item_model": "auto",
+    "loading_matrix": "data/e2e_mgrm_loading.csv",
+    "dimension_range": "auto", "dimension_count": "auto",
+    "estimator": "EM", "max_iterations": 500,
+    "theta_min": -3, "theta_max": 3, "theta_points": 121,
+    "selection_criterion": "BIC", "allow_3pl": false, "compute_m2": false
+  },
+  "output": { "directory": "../outputs", "project_label": "e2e_cifa_mgrm", "report_languages": ["zh", "en"], "save_model_object": false }
+}

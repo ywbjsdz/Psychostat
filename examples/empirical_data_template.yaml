@@ -1,0 +1,38 @@
+# Copy this file, rename it (for example, my_study.yaml), and edit only the values below.
+input:
+  mode: file
+  # Use forward slashes, including on Windows. CSV, XLSX/XLS, and SAV are supported.
+  path: "C:/Users/your_name/Desktop/my_study/responses.xlsx"
+  # Use null if your file has no identifier column.
+  id_column: "participant_id"
+  # List only scored IRT items. Do not include demographics, total scores, or grouping variables.
+  item_columns: ["item01", "item02", "item03", "item04", "item05", "item06"]
+  # none: leave NAs to mirt; listwise: omit persons missing any selected item;
+  # pairwise: available-case correlations for dimensionality suggestion, with mirt fitting observed responses.
+  missing: none
+
+analysis:
+  # rasch | 2pl | 3pl | grm | mirt | auto
+  model: grm
+  compare_models: [grm]
+  dimension_count: 1
+  # For confirmatory MIRT, set model: mirt and provide a mapping such as:
+  # dimension_mapping:
+  #   F1: [item01, item02, item03]
+  #   F2: [item04, item05, item06]
+  dimension_mapping: null
+  estimator: EM
+  max_iterations: 500
+  theta_min: -3
+  theta_max: 3
+  theta_points: 121
+  selection_criterion: BIC
+  allow_3pl: false
+  compute_m2: false
+
+output:
+  # 值请加英文引号，例如 directory: "outputs"。YAML 裸写 . 、no、on、1e5 会被解析成 NA/逻辑/数字，导致路径或项目名错误。
+  directory: outputs
+  project_label: my_study
+  report_languages: [zh, en]
+  save_model_object: true

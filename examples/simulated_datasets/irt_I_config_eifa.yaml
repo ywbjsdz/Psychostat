@@ -1,0 +1,17 @@
+# IRT-I（探索路线 EIFA）：二维二分数据（800 人 × 20 题，0/1 计分）
+# 用法：Rscript scripts/irt_generic_pipeline.R --config examples/simulated_datasets/<本文件>
+input:
+  mode: file
+  path: "./irt_I_multidimensional_binary_n800_items20.csv"
+  item_columns: auto
+  missing: none            # none 与 pairwise 等价；listwise 会先删人
+analysis:
+  model: mirt
+  mirt_mode: eifa
+  selection_criterion: BIC
+  compute_m2: true
+  mirt_item_model: 2pl   # 显式指定多维 2PL（M2PL）
+output:
+  directory: "../../outputs"
+  report_languages: [zh, en]
+  save_model_object: true

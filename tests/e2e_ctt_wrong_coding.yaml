@@ -1,0 +1,17 @@
+# L1 回归夹具（对应修复 R2）：反向计分前必须校验观测范围与 scale_maximum 一致。
+# 数据是 0–4 编码（不是 1..k），却声明 scale_maximum: 5 → 期望**报错拦住**，
+# 而不是静默地按 k+1-x 算出全错的反向分。
+input:
+  mode: file
+  path: "./data/ctt_wrong_coding_0to4.csv"
+  id_column: participant_id
+  item_columns: auto
+cleaning:
+  scale_maximum: 5
+  reverse_items: [Item01]
+analysis:
+  goal: quality
+output:
+  directory: "../outputs"
+  project_label: e2e_ctt_wrong_coding
+  report_language: zh

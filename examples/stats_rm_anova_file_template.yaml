@@ -1,0 +1,14 @@
+# 示例：重复测量方差分析（wide格式：每个时间点一列）
+method: [rm_anova]
+input:
+  mode: file
+  path: "my_data.csv"
+variables:
+  within: [time1_pre, time2_post, time3_followup]  # 依次填组内变量列名
+  id: participant_id                                # 可省略
+analysis:
+  alpha: 0.05
+output:
+  directory: outputs
+  project_label: my_rm
+  report_language: zh

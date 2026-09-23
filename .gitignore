@@ -1,0 +1,59 @@
+# 运行产物（每次分析生成的时间戳结果目录，含模拟数据/图表/Word报告）
+outputs/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# Office 临时文件
+~$*.docx
+~$*.xlsx
+
+# 本地临时/凭据文件（如发布前放置 token 等，切勿提交）
+.github_token.txt
+
+# 内部交接/工作笔记（本地保留，不入库）
+notes/
+
+# 由 md 生成的 Word 版（docs/*.md 才是唯一源，docx 属可再生产物，不入库）
+docs/*.docx
+
+# 私有数据保护：真实研究数据请放在下列目录，绝不入库
+data/
+private/
+local/
+secrets/
+.env
+*.sav
+*.xlsx
+*.xls
+!examples/*.sav
+!examples/*.xlsx
+!examples/*.xls
+!tests/data/
+!tests/data/*.csv
+
+# 操作系统杂项
+.DS_Store
+Thumbs.db
+
+# macOS：Python 依赖虚拟环境（首次运行时自动创建）与验证工具临时目录
+.venv/
+.piptmp/
+
+# 开发期临时脚本（下划线开头；绝不可进发布包）
+_*.R
+_*.tmp
+*.saving
+
+# ── 内部开发材料：本地保留，不随公开发布（也不进公开仓库历史）──
+docs/安全与隐私审计.md
+docs/局部最优与重构路线图.md
+docs/待修问题清单.md
+docs/第三方AI复核提示词_*.md
+docs/第三轮_*.md
+docs/CTT与IRT校对方案.md
+docs/CTT与IRT校对记录.md
+CTT与IRT校对记录.docx
+GLM核对结果.txt
+tests/thirdparty/

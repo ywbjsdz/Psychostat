@@ -1,0 +1,16 @@
+# IRT-D：含 5% 随机缺失的二分数据（800 人 × 20 题）——缺失策略：pairwise
+# 用法：Rscript scripts/irt_generic_pipeline.R --config examples/simulated_datasets/<本文件>
+input:
+  mode: file
+  path: "./irt_D_binary_missing5pct_n800_items20.csv"
+  item_columns: auto
+  missing: pairwise            # none 与 pairwise 等价；listwise 会先删人
+analysis:
+  model: 2pl
+  mirt_mode: eifa
+  selection_criterion: BIC
+  compute_m2: true
+output:
+  directory: "../../outputs"
+  report_languages: [zh, en]
+  save_model_object: true

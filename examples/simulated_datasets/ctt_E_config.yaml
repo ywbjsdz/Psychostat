@@ -1,0 +1,28 @@
+# CTT-E：脏作答「处理而非仅标记」（800 人 × 15 题，5 点计分）
+# 教学点：straightline/extreme 都设为 remove（真的删人并报告删了几人），
+#         效标为**负向**（criterion_direction: negative），看方向判断是否正确
+# 用法：Rscript scripts/ctt_pipeline.R --config examples/simulated_datasets/ctt_E_config.yaml
+input:
+  mode: file
+  path: "./ctt_E_dirty_remove_n800_items15.csv"
+  id_column: participant_id
+  item_columns: auto
+cleaning:
+  scale_maximum: 5
+  reverse_items: []
+  missing_5_to_20: median_impute
+  attention_item: attention_check
+  attention_correct_value: 3
+  response_time_column: response_time_sec
+  minimum_response_seconds: 45
+  straightline_action: remove    # flag（默认，只标记）| remove（直接删人）
+  extreme_action: remove         # flag（默认，只标记）| remove（直接删人）
+analysis:
+  goal: quality                  # 质量检查路线：清洗 + 项目分析 + 信度 + 效标/已知组效度
+  criterion_column: criterion
+  criterion_direction: negative  # positive（默认）| negative
+  known_group_column: known_group
+output:
+  directory: "../../outputs"
+  project_label: ctt_E
+  report_language: zh

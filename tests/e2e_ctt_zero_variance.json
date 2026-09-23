@@ -1,0 +1,22 @@
+{
+  "input": {
+    "mode": "file",
+    "path": "./data/ctt_zero_variance_item.csv",
+    "id_column": "participant_id",
+    "item_columns": "auto"
+  },
+  "cleaning": {
+    "scale_maximum": 5,
+    "reverse_items": []
+  },
+  "analysis": {
+    "goal": "efa",
+    "rotation": "promax",
+    "n_factors": "auto"
+  },
+  "output": {
+    "directory": "../outputs",
+    "project_label": "e2e_ctt_zero_variance",
+    "report_language": "zh"
+  }
+}

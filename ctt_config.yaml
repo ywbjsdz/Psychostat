@@ -1,0 +1,40 @@
+# Psychostat CTT default example. Run: .\run_ctt_analysis.ps1 -Config .\ctt_config.yaml
+input:
+  mode: simulate                 # simulate or file
+  path: ""                       # CSV, XLSX, XLS, or SAV when mode: file
+  id_column: participant_id
+  item_columns: auto             # or [Item1, Item2, Item3]
+
+cleaning:
+  scale_maximum: 5
+  reverse_items: [Item5]         # scored as k + 1 - raw response
+  missing_5_to_20: median_impute # stop | listwise | median_impute
+  attention_item: attention_check
+  attention_correct_value: 3
+  response_time_column: response_time_sec
+  minimum_response_seconds: 45
+  straightline_action: flag      # flag | remove
+  extreme_action: flag           # flag | remove
+
+analysis:
+  goal: efa                      # 三条路线（EFA与CFA互斥，不再同一份数据连跑）：
+                                 #   quality = 仅量表质量检查（清洗+项目分析+信度+效度证据）
+                                 #   efa     = 质量 + 探索性因子分析（数据驱动找结构）
+                                 #   cfa     = 质量 + 验证性因子分析（验证预设结构，必须给 cfa_mapping；
+                                 #             模拟演示模式自动使用模拟真实结构）
+  rotation: promax               # varimax | promax（仅 efa 路线使用）
+  n_factors: auto                # auto, or an integer（仅 efa 路线使用）
+  max_efa_iterations: 10
+  cfa_mapping: ""                # cfa 路线必填：CSV/XLSX，两列 item,dimension（模板 examples/ctt_cfa_mapping_template.csv）
+  criterion_column: criterion
+  criterion_direction: positive  # positive | negative
+  known_group_column: known_group
+
+simulation:
+  seed: 20260826
+  n_persons: 480
+
+output:
+  directory: outputs
+  project_label: ctt_simulation
+  report_language: zh

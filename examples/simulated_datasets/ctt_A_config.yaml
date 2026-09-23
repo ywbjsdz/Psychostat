@@ -1,0 +1,19 @@
+# CTT-A：干净单维量表（600 人 × 15 题，5 点计分，无缺失、无反向题）
+# 用法：Rscript scripts/ctt_pipeline.R --config examples/simulated_datasets/ctt_A_config.yaml
+input:
+  mode: file
+  path: "./ctt_A_clean_unidimensional_n600_items15.csv"
+  id_column: null
+  item_columns: auto
+cleaning:
+  scale_maximum: 5
+  reverse_items: []
+  missing_5_to_20: median_impute
+analysis:
+  goal: efa                      # 也可改成 quality（只做质量检查）或 cfa（需对照表）
+  rotation: promax
+  n_factors: auto
+output:
+  directory: "../../outputs"
+  project_label: ctt_A
+  report_language: zh

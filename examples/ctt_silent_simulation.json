@@ -1,0 +1,25 @@
+{
+  "input": {"mode": "simulate", "id_column": "participant_id", "item_columns": "auto"},
+  "cleaning": {
+    "scale_maximum": 5,
+    "reverse_items": ["Item5"],
+    "missing_5_to_20": "median_impute",
+    "attention_item": "attention_check",
+    "attention_correct_value": 3,
+    "response_time_column": "response_time_sec",
+    "minimum_response_seconds": 45,
+    "straightline_action": "flag",
+    "extreme_action": "flag"
+  },
+  "analysis": {
+    "rotation": "promax",
+    "n_factors": "auto",
+    "max_efa_iterations": 10,
+    "cfa_source": "efa",
+    "criterion_column": "criterion",
+    "criterion_direction": "positive",
+    "known_group_column": "known_group"
+  },
+  "simulation": {"seed": 20260826, "n_persons": 480},
+  "output": {"directory": "../outputs", "project_label": "ctt_silent", "report_language": "zh"}
+}

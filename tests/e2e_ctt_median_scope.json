@@ -1,0 +1,21 @@
+{
+  "input": {
+    "mode": "file",
+    "path": "./data/ctt_median_impute_scope.csv",
+    "id_column": "participant_id",
+    "item_columns": "auto"
+  },
+  "cleaning": {
+    "scale_maximum": 5,
+    "reverse_items": [],
+    "missing_5_to_20": "median_impute"
+  },
+  "analysis": {
+    "goal": "quality"
+  },
+  "output": {
+    "directory": "../outputs",
+    "project_label": "e2e_ctt_median_scope",
+    "report_language": "zh"
+  }
+}

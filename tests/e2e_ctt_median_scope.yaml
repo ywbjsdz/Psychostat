@@ -1,0 +1,19 @@
+# L1 回归夹具（对应修复 R4）：中位数插补只能用「会被保留下来」的个案来算。
+# 数据：40 名高缺失个案（第 10–18 题缺失 = 22.5% > 20% → 会被删除，其余作答全为 1）
+#       + 60 名完整个案（3–5 分）；其中第 1 名完整个案的第 6 题缺失（2.5% < 5% → 插补）。
+# 期望：第 6 题的插补值是「仅保留者」的中位数 4，而不是「全样本」的中位数 3。
+input:
+  mode: file
+  path: "./data/ctt_median_impute_scope.csv"
+  id_column: participant_id
+  item_columns: auto
+cleaning:
+  scale_maximum: 5
+  reverse_items: []
+  missing_5_to_20: median_impute
+analysis:
+  goal: quality
+output:
+  directory: "../outputs"
+  project_label: e2e_ctt_median_scope
+  report_language: zh
