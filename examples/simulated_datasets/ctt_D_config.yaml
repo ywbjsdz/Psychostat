@@ -1,0 +1,20 @@
+# CTT-D：三因子近似正交结构（700 人 × 18 题，5 点计分，无缺失、无反向题）
+# 教学点：结构近似正交时用 varimax；因子数由设计确定，故直接写死 3（不靠平行分析）
+# 用法：Rscript scripts/ctt_pipeline.R --config examples/simulated_datasets/ctt_D_config.yaml
+input:
+  mode: file
+  path: "./ctt_D_three_factor_n700_items18.csv"
+  id_column: null
+  item_columns: auto
+cleaning:
+  scale_maximum: 5
+  reverse_items: []
+  missing_5_to_20: median_impute
+analysis:
+  goal: efa
+  rotation: varimax              # 正交旋转：因子间相关很小时比 promax 更易解释
+  n_factors: 3                   # 手动指定：设计上就是 3 个因子
+output:
+  directory: "../../outputs"
+  project_label: ctt_D
+  report_language: zh

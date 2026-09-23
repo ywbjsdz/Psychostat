@@ -1,0 +1,18 @@
+# 边界测试夹具：量表里有一道**零方差题**（所有被试都选 3）。
+# 期望：工具必须**明确报错拦住**，而不是静默产出 NA 载荷/无意义的 α。
+input:
+  mode: file
+  path: "./data/ctt_zero_variance_item.csv"
+  id_column: participant_id
+  item_columns: auto
+cleaning:
+  scale_maximum: 5
+  reverse_items: []
+analysis:
+  goal: efa
+  rotation: promax
+  n_factors: auto
+output:
+  directory: "../outputs"
+  project_label: e2e_ctt_zero_variance
+  report_language: zh

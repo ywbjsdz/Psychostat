@@ -1,0 +1,17 @@
+# IRT-C（验证路线 CIFA）：按 irt_C_loading_matrix.csv 验证 2 维结构，并与单维模型比较
+# 用法：Rscript scripts/irt_generic_pipeline.R --config examples/simulated_datasets/<本文件>
+input:
+  mode: file
+  path: "./irt_C_multidimensional_grm_n1000_items24.csv"
+  item_columns: auto
+  missing: none            # none 与 pairwise 等价；listwise 会先删人
+analysis:
+  model: mirt
+  mirt_mode: cifa
+  selection_criterion: BIC
+  compute_m2: true
+  loading_matrix: "./irt_C_loading_matrix.csv"
+output:
+  directory: "../../outputs"
+  report_languages: [zh, en]
+  save_model_object: true

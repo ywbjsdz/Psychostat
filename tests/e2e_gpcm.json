@@ -1,0 +1,11 @@
+{
+  "input": { "mode": "file", "path": "../examples/simulated_datasets/irt_B_polytomous_grm_n600_items15.csv", "id_column": null, "item_columns": "auto", "missing": "none" },
+  "analysis": {
+    "model": "gpcm", "mirt_mode": "eifa", "mirt_item_model": "auto",
+    "dimension_range": "auto", "dimension_count": "auto",
+    "estimator": "EM", "max_iterations": 500,
+    "theta_min": -3, "theta_max": 3, "theta_points": 121,
+    "selection_criterion": "BIC", "allow_3pl": false, "compute_m2": false
+  },
+  "output": { "directory": "../outputs", "project_label": "e2e_gpcm", "report_languages": ["zh"], "save_model_object": false }
+}

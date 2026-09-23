@@ -1,0 +1,18 @@
+# IRT-B（GPCM 版）：同一份多级数据改用 GPCM（Muraki 1992 相邻类别 logit）拟合
+# 用法：Rscript scripts/irt_generic_pipeline.R --config examples/simulated_datasets/<本文件>
+input:
+  mode: file
+  path: "./irt_B_polytomous_grm_n600_items15.csv"
+  item_columns: auto
+  missing: none            # none 与 pairwise 等价；listwise 会先删人
+# 教学点：Likert 数据 GRM 与 GPCM 都合理，用 BIC 比较；两者对同一份数据的台阶参数口径不同
+analysis:
+  model: gpcm
+  mirt_mode: eifa
+  selection_criterion: BIC
+  compute_m2: true
+  compare_models: [grm, gpcm]   # 一次拟合两个模型并比较
+output:
+  directory: "../../outputs"
+  report_languages: [zh, en]
+  save_model_object: true

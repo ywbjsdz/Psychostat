@@ -1,0 +1,5 @@
+# Psychostat —— Python 依赖精确版本锁定（生成 Word 结果报告用）
+# 安装：pip install -r requirements-lock.txt
+# 更新锁定的方法：py -m pip show pandas python-docx 后同步本文件版本号
+pandas==3.0.3
+python-docx==1.2.0

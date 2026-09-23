@@ -1,0 +1,15 @@
+# 示例：两因素方差分析（交互+简单效应）
+method: [two_way_anova]
+input:
+  mode: file
+  path: "my_data.csv"
+variables:
+  dv: score
+  factor_a: method     # 自变量A（如教学法，2-3个水平）
+  factor_b: motivation # 自变量B
+analysis:
+  alpha: 0.05
+output:
+  directory: outputs
+  project_label: my_anova
+  report_language: zh

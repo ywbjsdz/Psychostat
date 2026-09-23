@@ -1,0 +1,30 @@
+# Copy this file, then replace paths and column names. Do not put total scores into item_columns.
+input:
+  mode: file
+  path: "C:/Users/YourName/Desktop/my_questionnaire.xlsx"
+  id_column: ID
+  item_columns: auto
+cleaning:
+  scale_maximum: 5
+  reverse_items: [Q3, Q8]
+  missing_5_to_20: stop
+  attention_item: attention_item
+  attention_correct_value: 4
+  response_time_column: response_time_sec
+  minimum_response_seconds: 60
+  straightline_action: flag
+  extreme_action: flag
+analysis:
+  rotation: promax
+  n_factors: auto
+  max_efa_iterations: 10
+  goal: efa                    # quality | efa | cfa（三条路线；cfa需给cfa_mapping）
+cfa_source: efa
+  cfa_mapping: ""
+  criterion_column: criterion_score
+  criterion_direction: positive
+  known_group_column: group
+output:
+  directory: outputs
+  project_label: my_scale
+  report_language: zh

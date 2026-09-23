@@ -1,0 +1,53 @@
+# Psychostat 心理统计默认示例：一次性运行全部22个教学演示（模拟数据 + SPSS对照输出）。
+# 第 1 个方法是「数据准备与异常值筛查」——任何分析前都会自动先跑这一步。
+# 运行：.\run_stats_analysis.ps1 -Config .\stats_config.yaml
+method: all_demos              # 或单个/多个方法，如 [independent_t, one_way_anova]；可选值见 README
+
+input:
+  mode: simulate               # simulate | file
+  path: ""                     # file 模式：CSV/XLSX/XLS/SAV 路径
+
+variables:                     # file 模式时按方法填对应列名（模拟模式忽略）
+  dv: ""                       # 因变量
+  group: ""                    # 分组变量
+  dv1: ""                      # 配对前测
+  dv2: ""                      # 配对后测
+  factor_a: ""                 # 两因素设计的因子A
+  factor_b: ""                 # 两因素设计的因子B
+  between: ""                  # 混合设计的被试间因子
+  within: []                   # 重复测量/混合/Friedman 的组内变量列
+  id: ""                       # 被试编号列（重复测量类方法需要）
+  covariate: ""                # ANCOVA 协变量
+  predictors: []               # 回归自变量
+  mu: 50                       # 单样本t 的检验值
+  row_var: ""                  # 卡方独立性行变量
+  col_var: ""                  # 卡方独立性列变量
+  category: ""                 # 卡方适合度分类变量
+  columns: []                  # 描述统计/相关分析的数值列（空=自动选数值列）
+  x: ""                        # 中介：自变量X
+  m: ""                        # 中介：中介变量M
+  y: ""                        # 中介：因变量Y
+
+# ── 数据准备（第 0 步，任何分析前自动运行）────────────────────────────────────
+# 默认只报告、不改动数据。要真正处理缺失值/异常值，把下面两行改成对应取值。
+datacheck:
+  missing_action: report        # report(只报告) | mean_impute(均值插补,SPSS常用) | listwise(整例删除)
+  outlier_action: report        # report(只标注) | remove_by_z(按 |Z| 删除)
+  z_cutoff: 3                   # |Z| 阈值（>3 视为异常值）
+  # scale_range: [1, 5]         # 可选：量表合法范围，用于检查越界值（如缺失码 99）
+  # scale_vars: []              # 可选：哪些变量按该量表计分（只有列在这里的才严格判越界）
+
+analysis:
+  alpha: 0.05
+  posthoc: [lsd, tukey, bonferroni]
+  correlation_method: both     # pearson | spearman | both
+  gof_expected_probs: []       # 卡方适合度期望比例（空=均匀）
+
+simulation:
+  seed: 20260904
+  n_per_group: 30              # 演示数据每组人数
+
+output:
+  directory: outputs
+  project_label: stats_demo
+  report_language: zh

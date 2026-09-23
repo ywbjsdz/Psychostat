@@ -1,0 +1,46 @@
+{
+    "input":  {
+                  "mode":  "simulate",
+                  "item_columns":  "auto",
+                  "missing":  "none"
+              },
+    "analysis":  {
+                     "model":  "mirt",
+                     "compare_models":  [
+                                            "mirt"
+                                        ],
+                     "response_format":  "binary",
+                     "dimension_count":  2,
+                     "dimension_range":  "auto",
+                     "mirt_mode":  "cifa",
+                     "mirt_item_model":  "2pl",
+                     "loading_matrix": "simulated_mirt_2pl_binary_loading_matrix.csv",
+                     "max_auto_dimensions":  4,
+                     "dimension_mapping":  null,
+                     "estimator":  "EM",
+                     "max_iterations":  300,
+                     "theta_min":  -3,
+                     "theta_max":  3,
+                     "theta_points":  121,
+                     "selection_criterion":  "BIC",
+                     "allow_3pl":  false,
+                     "compute_m2":  true
+                 },
+    "output":  {
+                   "directory": "../outputs",
+                   "project_label":  "simulated_binary_mirt_2pl_cifa",
+                   "report_languages":  [
+                                            "zh",
+                                            "en"
+                                        ],
+                   "save_model_object":  true
+               },
+    "simulation":  {
+                       "model":  "mirt",
+                       "n_persons":  400,
+                       "n_items":  12,
+                       "n_dimensions":  2,
+                       "response_categories":  2,
+                       "seed":  20260815
+                   }
+}

@@ -1,0 +1,23 @@
+# 行尾规则（跨平台关键）：
+# - macOS/Linux 脚本必须 LF，否则 bash 会报 "\r: command not found"
+# - Windows 批处理与 PowerShell 用 CRLF
+*.sh        text eol=lf
+*.command   text eol=lf
+*.bash      text eol=lf
+*.bat       text eol=crlf
+*.ps1       text eol=crlf
+*.R         text eol=lf
+*.py        text eol=lf
+*.md        text eol=lf
+*.json      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+
+# 编码约定（说明性注释，不设 working-tree-encoding 等功能性规则；
+# 由 tests\smoke_test.ps1 的"文件编码约定"检查自动把关）：
+# - *.ps1 为 UTF-8 且必须带**恰好一个** BOM（efbbbf）—— PowerShell 5.1 解析中文注释、
+#   中文字符串与中文路径所必需；无 BOM 会让 5.1 按本地代码页解码（中文变乱码甚至语法错误），
+#   双 BOM 同样出错。
+# - *.bat 为**纯 ASCII 且不带 BOM**：脚本本身不含中文字面（中文提示由启动后的 PowerShell 提供），
+#   这样在任何语言/代码页下双击都不会乱码。
+# - *.R / *.py / *.md 等其余文本文件为 UTF-8 **无 BOM**（BOM 会干扰部分解析器）。

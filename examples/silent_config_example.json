@@ -1,0 +1,30 @@
+{
+  "input": {
+    "mode": "file",
+    "path": "C:/Users/your_name/Desktop/my_study/responses.xlsx",
+    "id_column": "participant_id",
+    "item_columns": ["item01", "item02", "item03", "item04"],
+    "missing": "none"
+  },
+  "analysis": {
+    "model": "grm",
+    "compare_models": ["grm"],
+    "response_format": "ordinal",
+    "dimension_count": 1,
+    "dimension_mapping": null,
+    "estimator": "EM",
+    "max_iterations": 500,
+    "theta_min": -3,
+    "theta_max": 3,
+    "theta_points": 121,
+    "selection_criterion": "BIC",
+    "allow_3pl": false,
+    "compute_m2": true
+  },
+  "output": {
+    "directory": "outputs",
+    "project_label": "my_study",
+    "report_languages": ["zh", "en"],
+    "save_model_object": true
+  }
+}
