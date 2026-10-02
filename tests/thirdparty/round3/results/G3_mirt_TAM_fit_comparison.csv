@@ -1,0 +1,7 @@
+"metric","mirt_value","TAM_value","comparability","difference_TAM_minus_mirt"
+"M2*",146.877988316617,NA,"not comparable: TAM tam.modelfit has no M2* global statistic",NA
+"df",170,NA,"not comparable: TAM does not report M2* df",NA
+"SRMR",0.024106042703074,0.0195928518316493,"definition requires documentation-level caution",-0.00451319087142474
+"SRMSR",0.024106042703074,0.0240556418671745,"same residual-index label; numerical comparison allowed",-5.04008358995361e-05
+"TLI",1.00364170827884,NA,"not comparable: TAM does not report TLI",NA
+"CFI",1,NA,"not comparable: TAM does not report CFI",NA

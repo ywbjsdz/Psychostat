@@ -1,0 +1,3 @@
+"engine","estimator","target_estimator","elapsed_seconds","returned","message"
+"OpenMx","ordinal raw-data ML","lavaan WLSMV",0.0499999999999998,FALSE,"Don't know how to interpret factor column 'Item01' as numeric.
+You may want to specify thresholds for your model like this: mxThreshold(vars='Item01', nThresh=4)"

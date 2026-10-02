@@ -22,9 +22,53 @@ function Select-PsychostatFile {
     return $null
 }
 
+# ── 项目根解析（单一来源，R 与 Python 两条定位路径共用）────────────────────────
+# 免安装版是"解压即用"：整个包可能被解压到任意盘、任意子目录（甚至多一层外壳目录），
+# 因此所有"随包分发"的东西（R / Python / 依赖目录）都必须相对**项目根**定位，不能写死 D:\ 。
+# 项目根 = 本文件 psychostat_env.ps1 所在目录（启动器与本文件都在项目根，dot-source 后一致）。
+# 逻辑集中在这里，R 与 Python 两条路径就不会各自演化出不同的项目根。
+function Get-PsychostatProjectRoot {
+    param([string]$Hint)   # 调用方已知的项目目录（如启动器传入的 -ProjectRoot）
+    $candidates = @()
+    # 最可靠的一手信息：定义本函数的文件（psychostat_env.ps1）所在目录。
+    # 它不受 dot-source、也不受调用方当前位置影响，谁引用本文件都得到同一个项目根。
+    try {
+        $defineFile = $MyInvocation.MyCommand.ScriptBlock.File
+        if ($defineFile) { $candidates += (Split-Path -Parent $defineFile) }
+    } catch { }
+    if ($Hint) { $candidates += $Hint }
+    if ($PSScriptRoot) { $candidates += $PSScriptRoot }
+    if ($PSCommandPath) { $candidates += (Split-Path -Parent $PSCommandPath) }
+    # 优先取"目录里确实有 psychostat_env.ps1"的候选；同时容忍候选给的是项目根的**子目录**
+    # （scripts\ 下的脚本也会 dot-source 本文件），最多向上 2 层找出项目根，
+    # 避免把 .psychostat 之类的状态目录误建到 scripts\ 里面。
+    foreach ($c in $candidates) {
+        if (-not $c) { continue }
+        $dir = $c
+        for ($i = 0; $i -lt 3 -and $dir; $i++) {
+            if (Test-Path -LiteralPath (Join-Path $dir 'psychostat_env.ps1')) { return [IO.Path]::GetFullPath($dir) }
+            $parent = Split-Path -Parent $dir
+            if (-not $parent -or $parent -eq $dir) { break }
+            $dir = $parent
+        }
+    }
+    # 本文件被改名/拆分（找不到自身）时退回第一个已知目录，最后退回当前工作目录。
+    foreach ($c in $candidates) { if ($c) { return [IO.Path]::GetFullPath($c) } }
+    return [IO.Path]::GetFullPath((Get-Location).Path)
+}
+
 function Get-PsychostatWritableDirectory {
     param([Parameter(Mandatory=$true)][string]$DName, [Parameter(Mandatory=$true)][string]$CName, [string]$DAlternate)
     $candidates = @()
+    # 0) **项目内优先**：项目目录一般在用户自己的桌面/文档下，天然可写、不需要管理员权限，
+    #    不会像 D 盘根目录那样在某些机器上写不进去（那正是"数据传上去分析不了"的常见根因）。
+    #    统一放 <项目>\.psychostat\<名字>：.psychostat 是本工具的项目内状态目录，
+    #    集中一处便于识别，也便于随项目文件夹整体删除。
+    #    这里用 $CName：它本来就是"C 盘 / LOCALAPPDATA 这类用户级、免管理员目录"的命名，
+    #    与项目内目录同属"用户级可写"语义；两个调用点传入的 $DName/$CName 目前也同名。
+    $projectRoot = Get-PsychostatProjectRoot
+    if ($projectRoot) { $candidates += (Join-Path (Join-Path $projectRoot '.psychostat') $CName) }
+    # 1) 以下为原有回退（顺序与行为保持不变）：D 盘 → 备用目录 → C 盘 → %LOCALAPPDATA%
     if (Test-Path -LiteralPath 'D:\') { $candidates += (Join-Path 'D:\' $DName); if ($DAlternate) { $candidates += $DAlternate } }
     if (Test-Path -LiteralPath 'C:\') { $candidates += (Join-Path 'C:\' $CName) }
     if ($env:LOCALAPPDATA) { $candidates += (Join-Path $env:LOCALAPPDATA (Join-Path 'Psychostat' $CName)) }
@@ -390,6 +434,20 @@ function Initialize-PsychostatPythonEnvironment {
     # 本次会话是否由本工具安装了 Python（用于安装清单，供清理脚本提示卸载 Python 本体）
     $installedPyByUs = $false
     $pythonCandidates = @()
+    # **项目相对优先**（与 R 同一套项目根逻辑）：随包分发的 Python 先入选——发布包里
+    # Psychostat-Python 与 Psychostat 同级（外层）或直接放在项目里，新布局则是 runtime\Python。
+    # 命中即用，之后才回落到原有的 D 盘 / PATH / py.exe 逻辑。
+    # 注意：这里只负责"候选顺序"，这些候选仍要走下面的质检（≥3.9 且能正常启动）才能被采用。
+    $projectRoot = Get-PsychostatProjectRoot -Hint $ProjectRoot
+    $bundledPy = @(
+        (Join-Path $projectRoot 'runtime\Python\python.exe'),
+        (Join-Path $projectRoot 'Psychostat-Python\python.exe'),
+        (Join-Path $projectRoot '..\runtime\Python\python.exe'),
+        (Join-Path $projectRoot '..\Psychostat-Python\python.exe')
+    )
+    foreach ($candidate in $bundledPy) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate)) { $pythonCandidates += [IO.Path]::GetFullPath($candidate) }
+    }
     if (Test-Path -LiteralPath 'D:\') {
         $dPython = Get-ChildItem -Path 'D:\Python*\python.exe','D:\*\Python*\python.exe' -ErrorAction SilentlyContinue |
             Sort-Object FullName -Descending | Select-Object -ExpandProperty FullName
@@ -574,13 +632,28 @@ function Initialize-PsychostatEnvironment {
     # 1) locale：LANG/LC_* 泄漏进会话时，非 ASCII 安装路径的 R 会报 "compiler 命名空间不可用"
     Remove-Item Env:LANG, Env:LC_ALL, Env:LC_CTYPE -ErrorAction SilentlyContinue
 
-    # 2) 定位 Rscript：先找免安装全家桶自带的 R，再找 D 盘（用户首选），
-    #    然后 PATH/注册表，最后才找 C 盘。
+    # 2) 定位 Rscript：先在**项目内**找随包分发的免安装 R（解压到哪都能认到），
+    #    再找 D 盘（用户首选），然后 PATH/注册表，最后才找 C 盘。
     $rscript = $null
-    # 免安装版把 R 放在 D:\Psychostat-R；该名字不含版本号，不会被下面的 R-* 通配匹配到，
+    $projectRoot = Get-PsychostatProjectRoot
+    # 免安装版把 R 与 Psychostat 一起分发，故项目内路径优先级最高；再向上一级、上上级各看一层：
+    # 同学常把压缩包解压成"外壳目录\Psychostat\…"，或把 Psychostat / Psychostat-R /
+    # Psychostat-Python 三个同级目录整体放在外层。'runtime\R' 是工具随身运行库布局，
+    # 'Psychostat-R' 是原有布局；两处名字都不含版本号，不会被下面的 R-* 通配匹配到，
     # 必须显式列出（否则解压即用的包会因为"找不到 R"而触发自动安装流程）。
+    $bundledR = @(
+        (Join-Path $projectRoot 'runtime\R\bin\Rscript.exe'),
+        (Join-Path $projectRoot 'Psychostat-R\bin\Rscript.exe'),
+        (Join-Path $projectRoot '..\runtime\R\bin\Rscript.exe'),
+        (Join-Path $projectRoot '..\Psychostat-R\bin\Rscript.exe'),
+        (Join-Path $projectRoot '..\..\Psychostat-R\bin\Rscript.exe')
+    )
+    foreach ($candidate in $bundledR) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate)) { $rscript = [IO.Path]::GetFullPath($candidate); break }
+    }
+    # 原有回退（保持）：免安装版历史上要求解压到 D 盘根目录（D:\Psychostat-R），留作兼容
     $bundleR = 'D:\Psychostat-R\bin\Rscript.exe'
-    if (Test-Path -LiteralPath $bundleR) { $rscript = $bundleR }
+    if (-not $rscript -and (Test-Path -LiteralPath $bundleR)) { $rscript = $bundleR }
     if (-not $rscript -and (Test-Path -LiteralPath 'D:\')) {
         $dCandidate = Select-HighestRVersion @(Get-ChildItem -Path 'D:\R-*\bin\Rscript.exe','D:\*\R-*\bin\Rscript.exe' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName)
         if ($dCandidate) { $rscript = $dCandidate }

@@ -1,0 +1,83 @@
+CTT 与 IRT 输出自查报告 · 独立二次复核
+① 元信息
+审查员：ZCode（内置 GLM-5.3）；模式：A 实跑；耗时约 50 分钟（2026-09-18 10:20–11:05）
+环境：R 4.5.2（psych 2.6.5 / lavaan 0.6-21 / mirt 1.46.1 / ltm 1.2.0），与被测方一致；未遭遇其附录所述 Smart App Control 拦截（vegan.dll 可加载）
+实际执行的关键命令（全部按环境契约：全路径 Rscript、位置参数、正斜杠）：
+重生成 13 个结果目录：Rscript --vanilla scripts/ctt_pipeline.R --config examples/simulated_datasets/ctt_{A..E}_config.yaml；Rscript --vanilla scripts/irt_generic_pipeline.R --config .../irt_{A,E,H,B,I_cifa,I_eifa,G_cifa,G_eifa}*.yaml（三条后台批）
+我的独立复算器（自写 250 行，闭式 + ltm + 全新代码路径）：Rscript --vanilla notes/rev_tmp/rev_check.R <8 个 IRT 目录> --ctt <5 个 CTT 目录> → X_PASS=157 X_FAIL=0
+回放被审脚本：verify_l1_irt / verify_recovery_irt / verify_l3_irt_ltm / verify_l1_ctt / verify_recovery_ctt（同一批目录）
+FIX 验证：4 个边界小样本 JSON（n=40/80×2PL、n=80/400×GRM）跑启动器静默模式取 preflight 事件；e2e_ctt_wrong_coding、e2e_ctt_median_scope 实跑
+套件：smoke_test.ps1 -Full → ALL CHECKS PASSED；run_numeric_tests.ps1 → PASS_COUNT=93 FAIL_COUNT=0
+diff 审计：git diff ced2ee5^ 070ad12（两个校对提交的全部改动）
+② 判定汇总
+共 50 条主张：一致 50 / 不一致 0 / 无法判定 0。另有 5 条低严重度判据/文档问题（见④，不影响数值结论）与 1 条额外独立证据（ltm::tpm 的 3PL 对照，补上了他们的 L3 空白）。
+
+③ 逐条主张复核表
+ID	我方主张	我的复算值/结论	判定	证据
+IRT-L1-I1	MDISC=sqrt(Σa²) 偏差≤3.45e-15	我算 8 目录：0～3.45e-15	一致	rev_final.txt X-I1
+IRT-L1-I2	b 换算 ≤6.07e-15	≤1.20e-14（同量级）；另加语义验证：GRM 的 b 用二分法找 S_k=0.5 位置，max Δ=0.0000	一致	X-I2/X-I2s
+IRT-L1-I3	ICC 闭式 ≤4.94e-15	我的独立实现（GPCM 用相邻比值递推、GRM 用累积差分）：≤2.78e-15（单维）；多维目录修正取数后同为 1e-15 量级	一致	X-I3
+IRT-L1-I4	IIF ≤3.40e-05=峰值 0.00%	我用 Richardson 外推导数（第三种求导路径）复算，全部 < 峰值 0.01%	一致	X-I4
+IRT-L1-I5	TIF=ΣIIF ≤6.52e-15	≤6.52e-15	一致	X-I5
+IRT-L1-I6	SE 量级比值 0.86–0.93， r≥.70	经其脚本复跑通过；本人未独立重算（判据异议见⑤）	一致（间接）	verify_l1_irt 复跑
+IRT-L1-I7	BIC 升序/Selected 正确	8/8 目录复现（含 EIFA_3D/CIFA 标签）	一致	X-I7a/b
+IRT-L1-I8	CIFA 载荷结构 24/24、20/20	我按数字键复核行数/唯一性/对齐：通过	一致	X-I12 含载荷表
+IRT-L1-I9	缺失勾稽精确相等	8 目录全过	一致	X-I9a/b
+IRT-L1-I10	Rasch a 极差 0	rasch 目录 a 列极差 0.0e+00 复现；但该检查设计近恒真（见④-1）	一致（数值）/判据保留	X-I10
+IRT-L1-I11	BH ≤1.4e-15	我用 stats::p.adjust 独立复算 ≤1e-15	一致	X-I11
+IRT-L1-I12	题名口径一致	我扫全部含 Item 列的表（含 FIX-1 涉及的 4 张）：8 目录全一致	一致	X-I12/FIX-1
+IRT-L1-I16	empirical_rxx 只报告	双方都未判定，口径声明成立	一致（按设计）	—
+IRT-L2-A/E/H/B/GC/IC/GE/IE	32 项恢复指标	我的独立 merge：a r=.850–.943（Rasch RMSE=0 特判）、b/台阶 r=.994–.997、CIFA θ .870–.943、3PL c r=−.406 均值无偏——逐项吻合	一致	X-L2*
+IRT-L3-2PL-a/b	r=1.0000	我的 ltm 调用：a r=.9994 偏差+0.0030；b r=.9987	一致	X-L3a/b
+IRT-L3-GRM-a/thr	r=1.0000	a r=1.0000 偏差+0.0080；阈值 r=1.0000 偏差−0.0070	一致	X-L3a/d
+（新增）3PL-g	（他们未做）	ltm::tpm 独立对照：g 的 r=0.975，均值 ltm .170 vs 工具 .171（Hessian 警告符合弱识别预期）——比“只报告”更强的证据	补强	X-L3c
+CTT-L1-C1/C9/C2/C3	α 族逐位相同	5 目录复算：α/CITC/CR（我手算合并方差 t）全部 1e-15 量级	一致	X-C1/C9/C2/C3
+CTT-L1-C4/C5	KMO/Bartlett 逐位	我用 MASS::ginv 求偏相关（另一条求逆路线）：逐位相同（0.97164588 / 3765.133322 复现）	一致	X-C4/C5
+CTT-L1-C6/C7/C8	EFA 自洽/CR·AVE/ω	复算通过（ω 0.919401 vs 0.919392 复现）	一致	X-C7/C8
+CTT-L1-B1b	CI 口径重叠且宽度差<25%	我按 Feldt(1965) 精确式复算：5 目录全过（0.0189 vs 0.0191 复现）	一致	X-B1b
+CTT-L1-B3	factanal 结构 16/16	未独立重跑 factanal（他们口径只比结构、阈值宽松，见⑤）	一致（未独立复算）	⑥ 披露
+CTT-L1-C10/C10b	清洗计数偏差 0	我的独立复现（含插补时序修正后）：5 目录计数与逐行 removed 标记全部一致	一致	X-C10/C10b
+CTT-L2-*	结构/载荷恢复 4 项	我复核 EFA 归属/CFA 载荷合并：数值吻合	一致	X-L2（CTT 段）
+FIX-1	题名统一且非 CIFA 不变	①CIFA 目录 4 张表已统一（X-I12）；②diff 审计：改动仅在 plot_irt_curves 标签/extract_cifa_significance/item_fit 三处 + cifa_to_orig_item 恒等映射；③item_fit.Item 消费方 grep：generate_html_report.py / generate_result_reports.py 均为通用表渲染，无按旧行号 join 者——他们的判断独立复核成立	一致	git diff + grep
+FIX-2	4 阶格式；3 点“2.7%”	全题扫描我的 3 点格式重构：2PL 目录最大偏 2.69%（峰值占比）——2.7% 主张精确复现；4 阶后 0.00% 亦复现	一致	X-FIX2
+FIX-3	n=40 提示/n=80 二分不提示/n=80 多级提示/n=400 不提示	4 格边界矩阵逐格复现（warning 文本逐字匹配）	一致	fx.ps1 输出
+FIX-4	非零退出+原因可见	EXIT=1 + error 事件指引 -Verbose	一致	fx45 输出
+FIX-5	P041 Item06=4 非 3	实跑：Item06=4、保留 60 人	一致	fx45 输出
+FIX-6	仅显示	diff 审计：非静默回显诊断行，-Silent 分支零改动	一致	git diff
+SUITE-SMOKE	105 通过/0 跳过	ALL CHECKS PASSED、4 条新夹具全 PASS、无 SKIP（105 计数因日志截尾未逐项清点，结论不受影响）	一致	smoke 输出
+SUITE-NUM	PASS_COUNT=93	PASS_COUNT=93 FAIL_COUNT=0	一致	实跑输出
+④ 不一致与可疑项（按严重度；无“高/中”级）
+[低 · (c) 判据不合理] I10 近恒真：verify_l1_irt.R:367 的守卫条件本身就要求 max|a−1|<1e-8 才进入检查——若工具真把 Rasch 拟合成了别的模型（a≠1），该检查只会 SKIP 不会 FAIL（skip 文案“本目录不是 Rasch”）。判别力缺失，靠 I2/L2 兜底才未留死角。建议改为：config 声明 rasch ⇒ 断言 a 极差，失配即 FAIL。
+[低 · (c)] I6 阈值从方案的 r>.95 放宽到 r≥.70 未声明：校对方案.md §3A6 写“相关 > .95、无系统偏离”，校对记录.md I6 判据为 r≥.70（实测最低 .732）。放宽理由（MAP 收缩）成立，但文档间不一致且未标注变更——按检查纪律第 3 条这属于应被指认的阈值迁移。
+[低 · (d)/文档] L3 记录称 SKIP=0，8 目录口径下实为 SKIP=6：verify_l3_irt_ltm.R 只覆盖单维 2PL/GRM；跑全部 8 目录时 6 个目录 SKIP。他们的“SKIP=0”仅在只传 2 个目录的调用下成立，记录未说明口径。
+[低 · (b)] I5 循环内残留一处静默 next（verify_l1_irt.R:230）：TIF 有、IIF 无该维度时直接跳过不计数——与他们自己“失配一律判失败”的纪律相悖（当前数据下未触发，属隐患非错误）。
+[低 · (c)] verify_recovery_irt 的 MIRT-CIFA θ 按位置配对：ecols[i]↔tcols[i] 假设工具维度编号=真值编号。本批数据成立（载荷表固定了顺序），但换数据集若对照表维度排序不同会误判；建议也按维度题集对齐。
+未发现任何“高/中”级问题；数值层（会写进发表表格的数）经我方独立复算全部成立。
+
+⑤ 对判据与口径的意见
+成立且强的：等式型 1e-8~1e-12（浮点舍入量级论证正确）；I4 改峰值占比（我实测尾部逐点相对差确会 >100%，其论证成立）；GPCM 台阶与生成真值的口径对应（我从 generate_simulated_datasets.R 的 sim_gpcm 独立推导了 d=−MDISC·Σb_r ⇒ 工具台阶恰为 Muraki b_k，语义无缝）。
+同义反复风险已规避的：L1 只用参数表代数、L2 只用真值、L3 只用 ltm——审计其脚本确认无“用 mirt 验 mirt”路径；C8/B1b 明确标注“载荷取自工具同表，属内部一致性”。
+该查未查（下一轮建议）：① TAM 对 MGPCM 的独立对照（他们的空白，本次我以 ltm::tpm 补了 3PL，GPCM 仍空）；② M2*/SRMSR/CFI 的闭式或第二实现复算；③ CFA 的 OpenMx 复核（对齐 WLSMV 后）。
+⑥ 我复核过程自身的局限
+我的独立复算器自身修了 6 个 bug 才得到 157/157——多维 ICC 未按题目主维度取 a 列、CTT 矩阵先于子集化致字符矩阵、C10 复现漏了中位数插补时序（ctt_E 一度差 6 例，溯源为我方遗漏）、I10 未设目录门、Rasch 固定参数未特判、正则反斜杠被外层转义吃掉。这 6 处全部是我方错误，被测代码无一受累；列出以证“先证明谁错”的纪律被双向执行。
+I6（SE 与信息量关系）与 CTT-B3（factanal 结构）我只复跑了他们的脚本、未独立重算；判为“一致（间接）”。
+smoke 的“105”总数未逐项清点（后台日志只留尾部）；ALL CHECKS PASSED 与关键夹具已直接确认。
+未做跨版本（不同 mirt/psych 版本）比对；CFA 的 L3 与 M2* 类指标未独立复算（与其已知局限一致，未重复“发现”）。
+全程只读仓库 + 在 notes/、C:\PsychostatTemp 放临时脚本（已删尽）；outputs/ 下新增的 13+6 个时间戳目录是复现命令的必然产物，未删除任何历史目录，未改任何被测文件。
+⑦ 一致性指纹
+
+json
+{
+  "reviewer": "ZCode (builtin GLM-5.3)",
+  "mode": "run",
+  "ran_commands": true,
+  "claims_total": 50,
+  "agree": 50,
+  "disagree": 0,
+  "undecidable": 0,
+  "severity_max": "low",
+  "top_disagreement": "none",
+  "verifier_bug_found_in_ours": "无新计算性错误；判别力/文档 5 处低严重度问题（I10 近恒真、I6 阈值未声明放宽、L3 SKIP 口径、I5 静默 next、CIFA-θ 位置配对假设）",
+  "criteria_objection": "I10 的守卫条件使其几乎不可能 FAIL，建议改为按 config 声明的模型断言"
+}
+证伪手段总结（因结论为“未发现数值错误”，按要求说明）：我尝试了 ①换代码路径重推全部闭式（含 GPCM 递推式、GRM 二分法语义定位、Richardson 第三种求导）；②换独立实现（ltm 全家：ltm/grm/tpm，其中 tpm 是他们没用的）；③从生成器源头独立推导真值口径；④逐行复现最易错的清洗链路；⑤边界矩阵与坏配置注入；⑥diff 审计防止“修复夹带”。这些手段在我方 6 个复现 bug 上全部成功触发报警，却在被测代码上全部未能击穿——这构成“通过”结论有判别力的间接证据。

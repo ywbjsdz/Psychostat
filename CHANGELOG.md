@@ -3,7 +3,122 @@
 本项目的所有显著变更都记录在此文件中。
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [0.1.1] - 2026-10-02
+
+> 第二版。相对 v0.1.0 的四项改进：**发行包改为单一文件夹**（运行时收进项目内，解压到任意位置都能跑）、
+> **IRT 报告补充估计方法与收敛诊断**、**IRT 界面可直接选择模型**、**HTML 报告视觉与可访问性细化**。
+> 发布前做过隐私复核：会进包的文件里不含姓名/学号/本机用户名/开发机绝对路径（详见下文各条与 `docs/安全与隐私审计.md`）。
+
+### 修复：免安装包解压到 D 盘任意目录后「上传数据分析不了」
+
+**现象**（同学实际遇到）：把发布包解压到 D 盘后双击 `启动Psychostat界面.bat`，界面能起，
+但上传数据跑分析失败；把 `Psychostat` 文件夹复制到「文档」反而能跑。
+
+**根因（两处，都在环境定位上）**
+1. `psychostat_env.ps1` 把免安装 R **写死**成 `D:\Psychostat-R\bin\Rscript.exe`：只有恰好解压到
+   `D:\` 根目录才命中；解压到 `D:\某文件夹\` 就找不到 R → 触发「未找到 R」/自动安装分支，
+   分析自然跑不起来。随包分发的 `Psychostat-Python` 更是**完全没被查找过**（只找 `D:\Python*` 与 PATH）。
+2. `Get-PsychostatWritableDirectory` 的候选只有 `D:\<名字>`、`C:\<名字>`、`%LOCALAPPDATA%\...`，
+   R 包库默认落 `D:\Psychostat-R-Library`（**D 盘根目录**）——很多机器上需要管理员权限才能写，
+   写不进去就以「能上传但分析不了」的面目出现。
+
+**修法（只动环境定位，不碰任何分析逻辑）**
+1. 新增 `Get-PsychostatProjectRoot`：项目根单一来源（以定义本文件的目录为准，不受 dot-source 影响），
+   R 与 Python 两条定位路径共用，避免逻辑漂移。
+2. R / Python 一律**项目相对优先**：`<项目>\runtime\R\` → `<项目>\Psychostat-R\` → 上一级的同名目录 →
+   再上一级；之后**原样保留**原有的 `D:\Psychostat-R`、`D:\R-*`、PATH、注册表、`C:\Program Files\R`
+   与自动安装。Python 同理（`runtime\Python\`、`Psychostat-Python\`，含上一级），
+   且新候选仍走原有质检（≥3.9 且能正常启动）。
+3. 依赖目录**首选项目内** `<项目>\.psychostat\<名称>`（项目文件夹是用户自己解压出来的，天然可写、
+   免管理员权限），写不进去才逐级回落到 D / C / `%LOCALAPPDATA%`。
+4. `运行离线自检.bat` 同步改为 `%~dp0` 相对优先（继续保持纯 ASCII + CRLF）。
+5. 发布打包脚本 `notes/make_portable_release.ps1` 把 `.psychostat` 与 `runtime` 加进 robocopy `/XD` 与
+   zip 白名单排除（前者是本机 R 包库，后者是可选的项目内运行时布局——发布包固定用"同级
+   `Psychostat-R` / `Psychostat-Python`"，避免同一份 R 在包里出现两次）；`.gitignore` 同步忽略
+   `.psychostat/` 与 `/runtime/`。
+6. 新增 `notes/graft_runtime_into_project.ps1`：一条命令把同级的随包 R / Python **收进项目主文件夹**
+   （`<项目>\runtime\R`、`<项目>\runtime\Python`），便于做成"只有一个文件夹"的**插件版/就地使用**形态。
+   默认只预演，加 `-Execute` 才真正移动；`-Mode Copy` 可保留原地副本；移动后会对目标位置的
+   `Rscript.exe` / `python.exe` 做事后断言，找不到就报失败而不是静默成功。
+
+**验证（全部在 Windows PowerShell 5.1 / ACP=936 下完成）**
+- `psychostat_env.ps1` 语法错误 0；BOM 保持；中文 CJK 计数正常、无 U+FFFD。
+- 真机端到端：`powershell.exe -STA -File scripts\psychostat_gui.ps1 -SelfTest` → `GUI SELF-TEST OK`，退出码 0。
+- 定位实测：机器上已安装的 R 仍被正确找到（**向后兼容**）；`R_LIBS_USER` 与
+  `PYTHONUSERBASE` 均落到 `<项目>\.psychostat\...`；Python 同样命中且 `Ready=True`。
+- 9 种目录布局（只放某一条候选、多条并存、含 `..` / `..\..`）逐一命中期望候选。
+
+> **踩坑记录（值得写进规矩）**：本仓库 `.ps1` 的运行环境是 **Windows PowerShell 5.1**
+> （`启动Psychostat界面.bat` → `powershell.exe`），而 5.1 对**没有 UTF-8 BOM** 的脚本会按系统 ANSI
+> 代码页（中文 Windows = gb2312 / ACP 936）解码，中文串会吞掉收尾引号 → 解析直接失败（实测 59 个错误）。
+> 所以 **任何写入 `.ps1` 的工具都必须保留 BOM**；`.R` / `.py` / `.md` 则一律无 BOM（与本仓库既有约定一致）。
+> 用 PowerShell 7（`pwsh`）做语法检查会**掩盖**这个问题——验证必须用 `powershell.exe`。
+
+### 新增：IRT 报告补充「估计方法与收敛诊断」
+
+**动机**：报告读者（审稿人/答辩）需要知道"参数怎么估的、收敛了没有、能力量尺怎么定位的、
+关键包是什么版本"，而早先这些信息只散落在 `config_snapshot.yaml` 里，正文表格完全没有体现。
+
+**实现（只在报告层做加法，不改任何拟合行为）**
+1. R 侧 `scripts/irt_generic_pipeline.R` 新增 `estimation_diagnostics()`：**只读取** mirt 拟合对象
+   里已经算好的信息（`@Options` / `@OptimInfo` 两个槽 + `extract.mirt`），输出
+   `<prefix>_estimation_diagnostics.csv`（25 项，**纯 ASCII 键值**，规避各机编码差异），
+   并把同一份摘要写进 `run_manifest.json` 的 `estimation` 段（机器可读）。
+2. 中英文 Markdown 报告各新增「估计方法与收敛诊断 / Estimation method and convergence」一节；
+   HTML 报告新增同名 section，用状态块明示结论（**已收敛** / **未收敛·触及迭代上限** /
+   **未收敛·优化器提前停止**），再列明细键值表。
+3. 收录内容：估计方法（EM）、收敛判据（mirt TOL，默认 1e-04）、迭代上限（NCYCLES）、
+   **实际迭代次数**、是否收敛、是否触及上限、logLik/AIC/BIC/SABIC、自由参数个数、求积节点数、
+   能力积分区间、潜变量分布、能力估计方法（MAP）、**MAP 所用先验**、**能力量尺识别方式**、
+   潜变量均值/方差、SE 类型、R 与 mirt/psych/GPArotation 版本。
+
+**关于能力量尺的措辞（实测校准过，不写死）**：单组模型潜变量**均值固定为 0**；潜变量**方差**
+在题目斜率自由估计时固定为 1，斜率被约束时（如 Rasch/1PL）**由模型估计**。本机实测：
+2PL → `F1=1`（固定），Rasch → `F1=1.0226`（估计）。报告因此输出**实测值**而不是断言"恒为 1"。
+
+**兼容性**：旧结果目录没有该 CSV 时，HTML 报告显示一条说明（提示重跑分析），**不报错、不崩**。
+
+**验证**：本机 R 4.5.2 + mirt 1.46.1 真跑 rasch / 2pl 两个模拟算例 → 生成 CSV 与 manifest 段正确、
+中英文报告该节数值与 CSV 逐项一致；对 2026-09-23 的旧 IRT 结果目录重生成 HTML → 走兜底说明且正常出图。
+
+### 新增：IRT 界面可直接选择模型（下拉），不必只靠问答向导
+
+**背景**：第 1 步原本只有「选择模型（向导推荐）」一个入口（源码注释写明"不再暴露手动下拉"）。
+用户已知自己要跑哪个模型时，仍要回答 3–5 个问题。
+
+**实现**（只改 `scripts/psychostat_gui.ps1`）
+1. 新增 `$script:IrtModelChoices` 12 项选项表 + `$directBox` 下拉（DropDownList，初始"尚未选择"）。
+2. 选项覆盖：自动推荐（BIC 选优）/ Rasch·1PL / 2PL / 3PL / GRM / GPCM / MIRT·EIFA / MIRT·CIFA，
+   以及 M2PL / MGRM / MGPCM / M3PL 四个显式多维家族。
+3. **复用既有契约**：选定后写入同一个 `$script:IrtWizChoice`，再交给 `Sync-IrtStepViews` 联动
+   第 2 步摘要与 CIFA 归属表可见性——不新增并行状态，因此 `Start-IrtAnalysis` 无需改动。
+4. 向导「采用推荐」后回填下拉高亮（`Select-IrtModelChoice` + `IrtDirectSyncing` 抑制标志），
+   避免下拉显示与状态互相矛盾。两条入口并存，向导保留为"不确定时帮我推荐"。
+5. 启用/禁用与向导按钮一致：模拟演示禁用、选择自己的数据时启用。
+
+**验证**：`psychostat_gui.ps1 -SelfTest` → `GUI SELF-TEST OK`，退出码 0（740px 右缘、标签遮挡、
+控件数、mirt+cifa 归属表可见/非 cifa 隐藏等断言全过）；`mirtItemModel` 全部落在
+`scripts/irt_common.R` 白名单内（自检 G4 校验）。
+
+### 改进：HTML 报告视觉与可访问性细化
+
+在 `scripts/generate_html_report.py` 的样式表末尾追加一层**覆盖式设计细化**，stats/CTT/IRT 三个
+分支共用同一套观感，不改动任何生成逻辑与动画关键帧：
+1. **排版**：统一尺度与字重层次、标题 `text-wrap: balance`、正文可读行宽（`--measure`）、
+   段落与分节间距；用字重与颜色而非单纯放大来表达层级。
+2. **配色**：收敛为**单一 UI 强调色**（蓝），并把离群/信度等语义色独立成 `--ok/--warn/--bad`；
+   深色模式同步调整；不使用纯黑、不用霓虹发光、不用渐变文字。
+3. **可访问性**：新增「跳到正文」跳转链接、`:focus-visible` 可见焦点轮廓、`<main id="main">`
+   地标、导航当前项加 `aria-current`、诊断明细表用 `th scope="row"`；低动效偏好下同时关闭平滑滚动。
+4. **表格可扫读**：行悬停高亮（首列保持不透明底，横向滚动不穿透）；**超过 30 行的长表**才启用
+   内部滚动 + 吸顶表头（短表保持整页滚动的原有行为）。新增 `LONG_TABLE_ROWS` 常量控制阈值。
+5. **打印**：`@media print` 去掉导航与阴影、长表不再内部滚动，避免打印时被硬切。
+
+**约束**：报告必须保持**零外部网络引用**（字体只用系统字族、图标只用文字与内联 CSS）——
+已实测四个分支重生成后 `grep http` 命中数均为 **0**。
+
+**验证**：IRT（新/旧结果目录）、CTT、心理统计四个结果目录重生成 HTML 均 `HTML_REPORT_OK`、
+退出码 0、`http` 命中 0；新增「估计方法与收敛诊断」section 正确出现在导航与正文。
 
 ### 修复（早期试用反馈）：调节效应的 HTML/Word 报告会整份崩掉
 

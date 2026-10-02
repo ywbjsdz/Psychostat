@@ -1,0 +1,8 @@
+Psychostat CTT run log
+Run: 2026-09-18T19:29:35+0800
+Route: cfa
+R: R version 4.5.2 (2025-10-31 ucrt)
+Packages: psych 2.6.5; lavaan 0.6.21; GPArotation 2025.3.1
+CFA estimation: analysis.ordered=auto（题目按有序类别），estimator=WLSMV
+CFA path diagram: CFA path diagram generated.
+Interpretation warning: 本工具只标注建议删除项，不自动删除；是否删题由研究者结合理论决定。Automatic item-retention flags are decision aids; review content validity. EFA and CFA are separate routes: validating an EFA-derived structure requires an independent sample.

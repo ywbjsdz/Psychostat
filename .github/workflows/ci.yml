@@ -1,11 +1,9 @@
 # Psychostat Windows CI：数值回归测试 + 三分支冒烟测试（stats/CTT/IRT 最小模拟）
 name: CI
 
-# 首次公开发布时改为手动触发：本工作流尚未在 GitHub 托管机上验证过
-# （未安装 TAM/ltm/OpenMx/semTools 等 IRT 依赖，且含需要交互桌面的 GUI 自检），
-# 自动跑会直接飘红。等依赖装齐、GUI 自检改为无头模式后再改回 push 触发。
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
   pull_request:
 
 jobs:

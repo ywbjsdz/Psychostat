@@ -1,0 +1,36 @@
+empirical_rxx:
+function (Theta_SE, T_as_X = FALSE) 
+{
+    stopifnot(is.matrix(Theta_SE))
+    stopifnot(ncol(Theta_SE)%%2 == 0)
+    nms <- colnames(Theta_SE)
+    is_SE <- grepl("SE_", nms)
+    if (!any(is_SE)) 
+        stop("Must use full.scores.SE = TRUE in fscores() when computing estimates", 
+            call. = FALSE)
+    Theta <- Theta_SE[, !is_SE, drop = FALSE]
+    SE <- Theta_SE[, is_SE, drop = FALSE]
+    pick <- !(rowSums(Theta) %in% c(NA, Inf, -Inf))
+    T <- Theta[pick, , drop = FALSE]
+    E <- SE[pick, , drop = FALSE]
+    if (T_as_X) 
+        reliability <- 1 - colMeans(E^2)/(diag(var(T)))
+    else reliability <- diag(var(T))/(diag(var(T)) + colMeans(E^2))
+    names(reliability) <- colnames(T)
+    reliability
+}
+
+marginal_rxx:
+function (mod, density = dnorm, ...) 
+{
+    stopifnot(extract.mirt(mod, "nfact") == 1L)
+    stopifnot(is(mod, "SingleGroupClass"))
+    cfs <- coef(mod, simplify = TRUE)
+    var_theta <- as.vector(cfs$cov)
+    fn <- function(theta, mod, den, ...) {
+        TI <- testinfo(mod, matrix(theta))
+        TI/(TI + var_theta) * den(theta, ...)
+    }
+    integrate(fn, lower = -Inf, upper = Inf, mod = mod, den = density, 
+        ...)$value
+}

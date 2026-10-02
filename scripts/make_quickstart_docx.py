@@ -23,7 +23,7 @@ def main() -> int:
     doc = Document()
     style_doc(doc)
     add_md(doc, src.read_text(encoding="utf-8"), base_level=1)
-    out = ROOT / "Psychostat 功能速览.docx"
+    out = ROOT / "Psychostat 功能速览（简短说明书）.docx"
     save_docx(doc, out)
     print(f"已生成：{out}（{out.stat().st_size} 字节，段落 {len(doc.paragraphs)}，表格 {len(doc.tables)}）")
     return 0

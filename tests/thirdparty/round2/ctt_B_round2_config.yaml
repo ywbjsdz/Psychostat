@@ -1,0 +1,27 @@
+# Audit-only CTT-B configuration.  It mirrors the whitelisted ctt_B_config.yaml,
+# but sends generated evidence to tests/thirdparty/round2/results.
+input:
+  mode: file
+  path: "C:/Users/<user>/Desktop/Psychostat/examples/simulated_datasets/ctt_B_full_survey_n500_items20.csv"
+  id_column: participant_id
+  item_columns: [Item01, Item02, Item03, Item04, Item05, Item06, Item07, Item08, Item09, Item10, Item11, Item12, Item13, Item14, Item15, Item16, Item17, Item18, Item19, Item20]
+cleaning:
+  scale_maximum: 5
+  reverse_items: [Item07, Item15]
+  missing_5_to_20: median_impute
+  attention_item: attention_check
+  attention_correct_value: 3
+  response_time_column: response_time_sec
+  minimum_response_seconds: 45
+  straightline_action: flag
+  extreme_action: flag
+analysis:
+  goal: cfa
+  cfa_mapping: "C:/Users/<user>/Desktop/Psychostat/examples/simulated_datasets/ctt_B_cfa_mapping.csv"
+  criterion_column: criterion
+  criterion_direction: positive
+  known_group_column: known_group
+output:
+  directory: "C:/Users/<user>/Desktop/Psychostat/tests/thirdparty/round2/results"
+  project_label: ctt_B_round2
+  report_language: zh

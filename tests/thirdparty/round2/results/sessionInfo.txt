@@ -1,0 +1,48 @@
+R version 4.5.2 (2025-10-31 ucrt)
+Platform: x86_64-w64-mingw32/x64
+Running under: Windows 11 x64 (build 26200)
+
+Matrix products: default
+  LAPACK version 3.12.1
+
+locale:
+[1] LC_COLLATE=Chinese (Simplified)_Hong Kong SAR.utf8 
+[2] LC_CTYPE=Chinese (Simplified)_Hong Kong SAR.utf8   
+[3] LC_MONETARY=Chinese (Simplified)_Hong Kong SAR.utf8
+[4] LC_NUMERIC=C                                       
+[5] LC_TIME=Chinese (Simplified)_Hong Kong SAR.utf8    
+
+time zone: Asia/Shanghai
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] lavaan_0.6-21
+
+loaded via a namespace (and not attached):
+ [1] gtable_0.3.6          CDM_8.3-14            lattice_0.22-7       
+ [4] quadprog_1.5-8        vctrs_0.7.1           tools_4.5.2          
+ [7] generics_0.1.4        stats4_4.5.2          parallel_4.5.2       
+[10] tibble_3.3.1          proxy_0.4-29          cluster_2.1.8.1      
+[13] pkgconfig_2.0.3       R.oo_1.27.1           Matrix_1.7-4         
+[16] mirai_2.6.1           RcppParallel_5.1.11-2 lifecycle_1.0.5      
+[19] compiler_4.5.2        splines2_0.5.4        GPArotation_2025.3-1 
+[22] brio_1.1.5            mnormt_2.1.2          codetools_0.2-20     
+[25] permute_0.9-10        dcurver_0.9.3         class_7.3-23         
+[28] pillar_1.11.1         admisc_0.41           MASS_7.3-65          
+[31] R.utils_2.13.0        vegan_2.7-3           sessioninfo_1.2.3    
+[34] nlme_3.1-168          parallelly_1.47.0     Deriv_4.2.0          
+[37] polycor_0.8-2         qs2_0.2.1             tidyselect_1.2.1     
+[40] digest_0.6.39         mvtnorm_1.3-3         future_1.70.0        
+[43] dplyr_1.2.1           listenv_0.10.1        splines_4.5.2        
+[46] grid_4.5.2            cli_3.6.5             beepr_2.0            
+[49] magrittr_2.0.4        future.apply_1.20.2   pbivnorm_0.6.0       
+[52] e1071_1.7-17          TAM_4.3-25            clipr_0.8.0          
+[55] SimDesign_2.25        globals_0.19.1        audio_0.1-12         
+[58] otel_0.2.0            mirt_1.46.1           gridExtra_2.3        
+[61] progressr_0.19.0      R.methodsS3_1.8.2     stringfish_0.19.0    
+[64] pbapply_1.7-4         testthat_3.3.2        mgcv_1.9-3           
+[67] rlang_1.1.7           Rcpp_1.1.1            nanonext_1.9.0       
+[70] glue_1.8.0            R6_2.6.1             

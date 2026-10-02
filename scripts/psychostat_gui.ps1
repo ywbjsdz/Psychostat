@@ -1301,6 +1301,8 @@ function Update-IrtWizDialog {
             $script:IrtControls.wizCard.Text = "模型：$($rec2.zh) —— $($rec2.reason)"
             $script:IrtControls.wizCard.ForeColor = Get-ThemeColor 'accent'
         }
+        # 第 1 步下拉框同步高亮到同一模型（两者共用 $script:IrtWizChoice，避免显示互相矛盾）
+        Select-IrtModelChoice $rec2
         Sync-IrtStepViews
         $script:IrtWizDlg.form.Close()
     })
@@ -1338,6 +1340,41 @@ function Show-IrtModelWizardDialog {
     $script:IrtWizDlg = $null
 }
 
+# 第 1 步「直接选择模型」下拉的选项表（顺序即下拉显示顺序）。
+# 契约：与向导完全一致——选定后写入同一个 $script:IrtWizChoice，再交给 Sync-IrtStepViews 联动第 2 步摘要与归属表可见性。
+# mirtItemModel 取值须落在 scripts\irt_common.R 的白名单（auto/grm/gpcm/2pl/3pl）内，自检 G4 会校验。
+$script:IrtModelChoices = @(
+    @{ zh = '自动推荐（BIC 选优）';        fill = 'auto';  mirtMode = 'eifa'; mirtItemModel = 'auto' }
+    @{ zh = 'Rasch / 1PL';                fill = 'rasch'; mirtMode = 'eifa'; mirtItemModel = 'auto' }
+    @{ zh = '2PL';                        fill = '2pl';   mirtMode = 'eifa'; mirtItemModel = 'auto' }
+    @{ zh = '3PL（需大样本）';            fill = '3pl';   mirtMode = 'eifa'; mirtItemModel = 'auto' }
+    @{ zh = 'GRM（多级·累积 logit）';     fill = 'grm';   mirtMode = 'eifa'; mirtItemModel = 'auto' }
+    @{ zh = 'GPCM（多级·相邻 logit）';    fill = 'gpcm';  mirtMode = 'eifa'; mirtItemModel = 'auto' }
+    @{ zh = 'MIRT 多维·探索性 EIFA';      fill = 'mirt';  mirtMode = 'eifa'; mirtItemModel = 'auto' }
+    @{ zh = 'MIRT 多维·验证性 CIFA';      fill = 'mirt';  mirtMode = 'cifa'; mirtItemModel = 'auto' }
+    @{ zh = 'MIRT·M2PL（多维 2PL·仅二分）';      fill = 'mirt'; mirtMode = 'eifa'; mirtItemModel = '2pl' }
+    @{ zh = 'MIRT·MGRM（多维 GRM·多级）';        fill = 'mirt'; mirtMode = 'eifa'; mirtItemModel = 'grm' }
+    @{ zh = 'MIRT·MGPCM（多维 GPCM·多级）';      fill = 'mirt'; mirtMode = 'eifa'; mirtItemModel = 'gpcm' }
+    @{ zh = 'MIRT·M3PL（多维 3PL·仅二分·需大样本）'; fill = 'mirt'; mirtMode = 'eifa'; mirtItemModel = '3pl' }
+)
+# 程序化改写下拉选中项时置真：只同步显示，不把这次改动当成"用户手动指定"（否则会覆盖向导写入的理由文字）
+$script:IrtDirectSyncing = $false
+
+function Select-IrtModelChoice {
+    # 把第 1 步下拉框高亮到与给定选择（$script:IrtWizChoice 结构）一致的选项；无对应项则清空选中（保持"尚未选择"）
+    param([hashtable]$Choice)
+    $c = $script:IrtControls; if (-not $c -or -not $c.directBox) { return }
+    $idx = -1
+    if ($Choice) {
+        for ($i = 0; $i -lt $script:IrtModelChoices.Count; $i++) {
+            $o = $script:IrtModelChoices[$i]
+            if ($o.fill -eq $Choice.fill -and $o.mirtMode -eq $Choice.mirtMode -and $o.mirtItemModel -eq $Choice.mirtItemModel) { $idx = $i; break }
+        }
+    }
+    $script:IrtDirectSyncing = $true
+    try { $c.directBox.SelectedIndex = $idx } finally { $script:IrtDirectSyncing = $false }
+}
+
 function New-IrtStep1 {
     $p = New-StepPanel
     $p.Controls.Add((New-Label '第 1 步：选择数据与模型' 16 12 600 30 $true 13))
@@ -1358,30 +1395,53 @@ function New-IrtStep1 {
     $btnFile = New-Button '选择数据文件…' 530 148 130 30
     $p.Controls.AddRange(@($fileBox, $btnFile))
 
-    # 模型一律通过向导选择（不再暴露手动下拉）；向导按 计分→维度→样本量→作答方式/模式/家族 给推荐
-    $wizBtn = New-Button '选择模型（向导推荐）' 20 190 220 40 'primary'
+    # 模型有两条并行入口：①左侧「直接选择模型」下拉（选定即生效）；②向导（不确定时按 计分→维度→样本量→作答方式/模式/家族 给推荐）。
+    # 两者都写同一个 $script:IrtWizChoice，因此 Start-IrtAnalysis / Sync-IrtStepViews 读到的选择始终一致。
+    $p.Controls.Add((New-Label '直接选择模型：' 20 186 100 24))
+    $directBox = New-Object System.Windows.Forms.ComboBox
+    $directBox.DropDownStyle = 'DropDownList'
+    $directBox.Location = New-Object System.Drawing.Point(120, 182); $directBox.Size = New-Object System.Drawing.Size(330, 28)
+    $directBox.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 9.5)
+    foreach ($opt in $script:IrtModelChoices) { [void]$directBox.Items.Add($opt.zh) }
+    $directBox.SelectedIndex = -1     # 初始"尚未选择"：不预设模型，由用户下拉指定或走向导
+    $p.Controls.Add($directBox)
+
+    $wizBtn = New-Button '选择模型（向导推荐）' 470 178 220 40 'primary'
     $p.Controls.Add($wizBtn)
-    $wizCard = New-Label '模型：尚未选择 —— 点「选择模型（向导推荐）」，回答 3-5 个问题即可获得带文献依据的推荐（Rasch/2PL/3PL/GRM/GPCM/MIRT·M2PL）。' 250 190 480 40 $false 9
+    $wizCard = New-Label '模型：尚未选择 —— 可在左侧下拉里直接指定，或点「选择模型（向导推荐）」，回答 3-5 个问题即可获得带文献依据的推荐（Rasch/2PL/3PL/GRM/GPCM/MIRT·M2PL）。' 20 224 700 36 $false 9
     $wizCard.ForeColor = Get-ThemeColor 'textMuted'
     $p.Controls.Add($wizCard)
     $wizBtn.Add_Click({ Show-IrtModelWizardDialog })
 
     $mapBox = New-Object System.Windows.Forms.TextBox
-    $mapBox.Location = New-Object System.Drawing.Point(20, 232); $mapBox.Size = New-Object System.Drawing.Size(430, 28); $mapBox.ReadOnly = $true
-    $btnMap = New-Button '选择题目的维度归属表…' 460 230 200 30
+    $mapBox.Location = New-Object System.Drawing.Point(20, 268); $mapBox.Size = New-Object System.Drawing.Size(430, 28); $mapBox.ReadOnly = $true
+    $btnMap = New-Button '选择题目的维度归属表…' 460 266 200 30
     $p.Controls.AddRange(@($mapBox, $btnMap))
-    $mapHint = New-Label '仅"验证性 MIRT（CIFA）"需要归属表：向导选到该模式时上面才会出现选择框。' 20 266 600 22 $false 9
+    $mapHint = New-Label '仅"验证性 MIRT（CIFA）"需要归属表：在下拉里直接选该项、或由向导选到该模式时，上面才会出现选择框。' 20 302 600 22 $false 9
     $mapHint.ForeColor = Get-ThemeColor 'textMuted'
     $p.Controls.Add($mapHint)
 
-    $next = New-Button '下一步 →' 580 330 130 40 'secondary'
+    $next = New-Button '下一步 →' 580 346 130 40 'secondary'
     $p.Controls.Add($next)
     $next.Add_Click({ Go-Next })
 
-    $script:IrtControls = @{ rbSim=$rbSim; rbSim2=$rbSim2; rbFile=$rbFile; fileBox=$fileBox; btnFile=$btnFile; wizBtn=$wizBtn; wizCard=$wizCard; mapBox=$mapBox; btnMap=$btnMap }
-    $disable = { $script:IrtControls.fileBox.Enabled=$false; $script:IrtControls.btnFile.Enabled=$false; $script:IrtControls.wizBtn.Enabled=$false; $script:IrtControls.mapBox.Enabled=$false; $script:IrtControls.btnMap.Enabled=$false }
+    $script:IrtControls = @{ rbSim=$rbSim; rbSim2=$rbSim2; rbFile=$rbFile; fileBox=$fileBox; btnFile=$btnFile; directBox=$directBox; wizBtn=$wizBtn; wizCard=$wizCard; mapBox=$mapBox; btnMap=$btnMap }
+    $disable = { $script:IrtControls.fileBox.Enabled=$false; $script:IrtControls.btnFile.Enabled=$false; $script:IrtControls.directBox.Enabled=$false; $script:IrtControls.wizBtn.Enabled=$false; $script:IrtControls.mapBox.Enabled=$false; $script:IrtControls.btnMap.Enabled=$false }
     $rbSim.Add_CheckedChanged($disable); $rbSim2.Add_CheckedChanged($disable)
-    $rbFile.Add_CheckedChanged({ $script:IrtControls.fileBox.Enabled=$true; $script:IrtControls.btnFile.Enabled=$true; $script:IrtControls.wizBtn.Enabled=$true; $script:IrtControls.mapBox.Enabled=$true; $script:IrtControls.btnMap.Enabled=$true })
+    $rbFile.Add_CheckedChanged({ $script:IrtControls.fileBox.Enabled=$true; $script:IrtControls.btnFile.Enabled=$true; $script:IrtControls.directBox.Enabled=$true; $script:IrtControls.wizBtn.Enabled=$true; $script:IrtControls.mapBox.Enabled=$true; $script:IrtControls.btnMap.Enabled=$true })
+    # 下拉直接选模型 = 等价于向导「采用推荐」：写入同一契约并刷新第 2 步摘要/归属表可见性
+    $directBox.Add_SelectedIndexChanged({
+        if ($script:IrtDirectSyncing) { return }
+        $i = $script:IrtControls.directBox.SelectedIndex
+        if ($i -lt 0 -or $i -ge $script:IrtModelChoices.Count) { return }
+        $opt = $script:IrtModelChoices[$i]
+        $script:IrtWizChoice = @{ fill = $opt.fill; zh = $opt.zh; mirtMode = $opt.mirtMode; mirtItemModel = $opt.mirtItemModel; reason = "手动指定：$($opt.zh)" }
+        if ($script:IrtControls.wizCard) {
+            $script:IrtControls.wizCard.Text = "模型：$($opt.zh) —— 手动指定（第 1 步下拉）；如需选择依据，可再点「选择模型（向导推荐）」。"
+            $script:IrtControls.wizCard.ForeColor = Get-ThemeColor 'accent'
+        }
+        Sync-IrtStepViews
+    })
     $btnFile.Add_Click({ $f = Select-PsychostatFile -Title '选择 IRT 数据文件'; if ($f) { $script:IrtFile = $f; $script:IrtControls.fileBox.Text = $f } })
     $btnMap.Add_Click({ $f = Select-PsychostatFile -Title '选择题目-维度归属表（列名 item,dimension）' -Filter '归属表|*.csv;*.xlsx;*.xls|所有文件|*.*'; if ($f) { $script:IrtMap = $f; $script:IrtControls.mapBox.Text = $f } })
     return $p
@@ -1579,7 +1639,7 @@ function Sync-CttStepViews {
 }
 function Sync-IrtStepViews {
     $c = $script:IrtControls; if (-not $c -or -not $script:IrtStep2) { return }
-    # 归属表可见性：仅向导选择了 mirt + cifa（验证性）时需要；模型来自向导（$script:IrtWizChoice）。
+    # 归属表可见性：mirt + cifa（验证性）时需要；模型来自第 1 步下拉直接选择或向导推荐（两者同写 $script:IrtWizChoice）。
     $wiz = $script:IrtWizChoice
     $needMap = ($wiz -and $wiz.fill -eq 'mirt' -and $wiz.mirtMode -eq 'cifa')
     $c.mapBox.Visible = $needMap; $c.btnMap.Visible = $needMap
@@ -1590,7 +1650,7 @@ function Sync-IrtStepViews {
             $(if ($wiz.fill -eq 'mirt') { "`r`nMIRT 模式：$($wiz.mirtMode)" } else { '' }) +
             $(if ($script:IrtMap) { "`r`n归属表：$($script:IrtMap)" } else { '' })
     } else {
-        $script:IrtStep2.summary.Text = "将分析：$($script:IrtFile)`r`n模型：尚未选择 —— 回到第 1 步点「选择模型（向导推荐）」。"
+        $script:IrtStep2.summary.Text = "将分析：$($script:IrtFile)`r`n模型：尚未选择 —— 回到第 1 步在「直接选择模型」下拉里指定，或点「选择模型（向导推荐）」。"
     }
 }
 

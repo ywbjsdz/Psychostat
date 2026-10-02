@@ -5,7 +5,14 @@ setlocal
 cd /d "%~dp0"
 
 set "RS="
-if exist "D:\Psychostat-R\bin\Rscript.exe" set "RS=D:\Psychostat-R\bin\Rscript.exe"
+REM Project-relative first: works wherever the zip was extracted (incl. one extra wrapper folder).
+if exist "%~dp0runtime\R\bin\Rscript.exe" set "RS=%~dp0runtime\R\bin\Rscript.exe"
+if not defined RS if exist "%~dp0Psychostat-R\bin\Rscript.exe" set "RS=%~dp0Psychostat-R\bin\Rscript.exe"
+if not defined RS if exist "%~dp0..\runtime\R\bin\Rscript.exe" set "RS=%~dp0..\runtime\R\bin\Rscript.exe"
+if not defined RS if exist "%~dp0..\Psychostat-R\bin\Rscript.exe" set "RS=%~dp0..\Psychostat-R\bin\Rscript.exe"
+if not defined RS if exist "%~dp0..\..\Psychostat-R\bin\Rscript.exe" set "RS=%~dp0..\..\Psychostat-R\bin\Rscript.exe"
+REM Legacy fallbacks (unchanged): D: drive bundle, then an R installation in PATH.
+if not defined RS if exist "D:\Psychostat-R\bin\Rscript.exe" set "RS=D:\Psychostat-R\bin\Rscript.exe"
 if not defined RS if exist "D:\R-4.5.2\bin\Rscript.exe" set "RS=D:\R-4.5.2\bin\Rscript.exe"
 if not defined RS for /d %%D in ("D:\R-*") do if exist "%%D\bin\Rscript.exe" set "RS=%%D\bin\Rscript.exe"
 if not defined RS for /f "delims=" %%P in ('where Rscript.exe 2^>nul') do set "RS=%%P"
@@ -13,8 +20,9 @@ if not defined RS for /f "delims=" %%P in ('where Rscript.exe 2^>nul') do set "R
 if not defined RS (
   echo.
   echo [FAILED] Rscript.exe not found.
-  echo   Expected D:\Psychostat-R\bin\Rscript.exe  ^(portable bundle^)
-  echo   or an installed R on D: / in PATH.
+  echo   Expected .\runtime\R\bin\Rscript.exe or .\Psychostat-R\bin\Rscript.exe
+  echo   ^(beside this file, or in the folder one / two levels up^),
+  echo   or D:\Psychostat-R\bin\Rscript.exe, or an installed R in PATH.
   echo.
   pause
   exit /b 1

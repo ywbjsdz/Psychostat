@@ -1,0 +1,16 @@
+"directory","item","csv_value","report_token_found","matched_token"
+"e2e_cifa_mgrm_mirt_cifa_20260918_104832","best_model_BIC",12967.5060557911,TRUE,"12967.506"
+"e2e_cifa_mgrm_mirt_cifa_20260918_104832","first_finite_reliability",0.767694376190104,TRUE,"0.77"
+"e2e_cifa_mgrm_mirt_cifa_20260918_104832","first_item_first_numeric_parameter",1.52653349777941,TRUE,"1.53"
+"e2e_gpcm_gpcm_20260918_104750","best_model_BIC",22774.4965995908,TRUE,"22774.497"
+"e2e_gpcm_gpcm_20260918_104750","first_finite_reliability",0.856561011219383,TRUE,"0.86"
+"e2e_gpcm_gpcm_20260918_104750","first_item_first_numeric_parameter",0.805336005710436,TRUE,"0.81"
+"e2e_irt_small_n_2pl_20260918_104859","best_model_BIC",538.460854575205,TRUE,"538.46"
+"e2e_irt_small_n_2pl_20260918_104859","first_finite_reliability",0.744662985535471,FALSE,NA
+"e2e_irt_small_n_2pl_20260918_104859","first_item_first_numeric_parameter",0.910542765667853,TRUE,"0.91"
+"ctt_silent_ctt_20260918_104727","retained_n",465,FALSE,NA
+"ctt_silent_ctt_20260918_104727","total_alpha",0.808614858970603,TRUE,"0.81"
+"ctt_silent_ctt_20260918_104727","first_item_CITC",0.476217793913037,TRUE,"0.48"
+"e2e_ctt_zero_variance_ctt_20260918_104840","retained_n",120,FALSE,NA
+"e2e_ctt_zero_variance_ctt_20260918_104840","total_alpha",-0.141408345368269,TRUE,"-0.14"
+"e2e_ctt_zero_variance_ctt_20260918_104840","first_item_CITC",0.0916126251530162,TRUE,"0.09"

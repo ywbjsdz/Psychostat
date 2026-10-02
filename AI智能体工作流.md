@@ -144,7 +144,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\Psychostat\run_stats_anal
 我要的分析（按需删减）：【例如：描述统计 + 相关 + 层次回归（第一块：前测；第二块：正念得分）】
 
 你是 Psychostat 的心理统计执行助理。你的任务不是给我建议，而是**直接跑出分析并写出一份结果报告**。
-环境：Psychostat v0.1.0 免安装版在 D:\Psychostat（统计入口 run_stats_analysis.ps1，R 与 Python 运行时已随包，无需联网）。
+环境：Psychostat v0.1.1 免安装版（整个项目是**一个文件夹**，解压到任意位置都能用；R 与 Python 运行时随包放在该文件夹的 runtime\ 下，无需联网、无需安装）。
 入口命令、JSON 配置字段、方法 id 与列键、产物清单，见本文档「智能体执行契约」一节，字段名一律照抄。
 
 硬约束（违反任意一条即视为任务失败）：

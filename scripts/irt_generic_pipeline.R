@@ -205,6 +205,61 @@ stamp <- format(Sys.time(),"%Y%m%d_%H%M%S"); prefix <- paste(cfg$output$project_
 selected_model_label <- if(is_mirt && mirt_mode=="eifa") comparison$Model[1L] else if(is_mirt && mirt_mode=="cifa") "CIFA" else chosen_name
 recommendation <- data.frame(Rank=seq_len(nrow(comparison)),Model=comparison$Model,BIC=comparison$BIC,Selected=comparison$Model==selected_model_label,stringsAsFactors=FALSE)
 write.csv(comparison,fn("model_comparison"),row.names=FALSE); write.csv(recommendation,fn("model_recommendation"),row.names=FALSE); write.csv(overview,fn("item_overview"),row.names=FALSE); write.csv(missing_summary,fn("missingness_summary"),row.names=FALSE); write.csv(person_missing,fn("person_missingness"),row.names=FALSE); write.csv(item_missing,fn("item_missingness"),row.names=FALSE)
+# ── 估计方法与收敛诊断 ────────────────────────────────────────────────────────
+# 本块**只读取** mirt 拟合对象里已经算好的信息（Options/OptimInfo 槽 + extract.mirt），
+# 不改动任何拟合行为、不改任何既有产物，因此对分析结果零影响。
+# 报告读者需要知道"参数怎么估的、迭代上限多少、是否收敛、实际迭代几次、能力量尺怎么
+# 定位、MAP 用什么先验、关键包什么版本"——早先这些只散落在 config_snapshot 里，正文表格
+# 完全没有体现。这里抽成 estimation_diagnostics.csv（**纯 ASCII**，规避各机编码差异）。
+estimation_diagnostics <- function(fit, cfg, ability_method = "MAP") {
+  ex <- function(what, default = NA) tryCatch(extract.mirt(fit, what), error = function(e) default)
+  g <- function(x, default = NA) if (is.null(x) || length(x) == 0L) default else x
+  opt <- if (.hasSlot(fit, "OptimInfo")) fit@OptimInfo else list()
+  opts <- if (.hasSlot(fit, "Options")) fit@Options else list()
+  iter <- suppressWarnings(as.numeric(g(opt$iter, ex("iterations"))))
+  cap <- suppressWarnings(as.numeric(g(opts$NCYCLES, g(cfg$analysis$max_iterations, NA))))
+  conv <- isTRUE(as.logical(g(opt$converged, ex("converged"))))
+  hit_cap <- !conv && !is.na(iter) && !is.na(cap) && iter >= cap
+  co <- tryCatch(coef(fit, simplify = TRUE), error = function(e) NULL)
+  means <- if (!is.null(co$means)) co$means else numeric(0)
+  vars <- if (!is.null(co$cov)) diag(as.matrix(co$cov)) else numeric(0)
+  jn <- function(v, nm) if (!length(v)) NA_character_ else paste(sprintf("%s=%s", nm, format(round(as.numeric(v), 4), trim = TRUE)), collapse = "; ")
+  num <- function(k) { v <- suppressWarnings(as.numeric(ex(k))); if (is.na(v)) NA_character_ else as.character(round(v, 3)) }
+  ver <- function(p) tryCatch(as.character(utils::packageVersion(p)), error = function(e) NA_character_)
+  data.frame(
+    Metric = c("estimator", "em_tolerance", "max_iterations", "actual_iterations",
+               "converged", "hit_iteration_cap", "iterations_unused",
+               "logLik", "AIC", "BIC", "SABIC", "n_free_parameters",
+               "quadrature_points", "theta_lim", "latent_density",
+               "ability_estimation_method", "ability_prior", "latent_scale_identification",
+               "latent_means", "latent_variances", "standard_error_type",
+               "r_version", "mirt_version", "psych_version", "GPArotation_version"),
+    Value = c(as.character(g(opts$method, ex("method"))),
+              as.character(g(opts$TOL, NA)), as.character(cap), as.character(iter),
+              as.character(conv), as.character(hit_cap),
+              as.character(if (!is.na(iter) && !is.na(cap)) cap - iter else NA),
+              num("logLik"), num("AIC"), num("BIC"), num("SABIC"), as.character(ex("nest")),
+              as.character(g(opts$quadpts, NA)),
+              if (!is.null(opts$theta_lim)) paste(opts$theta_lim, collapse = " to ") else NA_character_,
+              as.character(g(opts$dentype, NA)),
+              ability_method,
+              "model-implied latent density (Gaussian, single group: mean 0 / variance 1)",
+              "single-group model: latent mean fixed to 0; latent variance fixed at 1 when all slopes are free, otherwise estimated (constrained slopes, e.g. Rasch/1PL)",
+              jn(means, names(means)), jn(vars, names(vars)),
+              as.character(g(opts$SE.type, NA)),
+              R.version.string, ver("mirt"), ver("psych"), ver("GPArotation")),
+    stringsAsFactors = FALSE)
+}
+diag_tbl <- estimation_diagnostics(chosen$fit, cfg, "MAP")
+write.csv(diag_tbl, fn("estimation_diagnostics"), row.names = FALSE)
+diag_get <- function(k) { v <- diag_tbl$Value[diag_tbl$Metric == k]; if (length(v)) v[1] else NA_character_ }
+est_conv <- identical(diag_get("converged"), "TRUE")
+est_hit_cap <- identical(diag_get("hit_iteration_cap"), "TRUE")
+# 报告正文只展示最要紧的若干项，完整 25 项留在 estimation_diagnostics.csv 里
+diag_show <- diag_tbl[diag_tbl$Metric %in% c("estimator", "em_tolerance", "max_iterations",
+  "actual_iterations", "converged", "logLik", "AIC", "BIC", "SABIC", "quadrature_points",
+  "latent_density", "ability_estimation_method", "ability_prior",
+  "latent_scale_identification", "mirt_version", "r_version"), , drop = FALSE]
 if(exists("eifa_dimension_comparison")) write.csv(eifa_dimension_comparison,fn("eifa_dimension_comparison"),row.names=FALSE)
 if(exists("cifa_vs_unidimensional")) write.csv(cifa_vs_unidimensional,fn("cifa_vs_unidimensional"),row.names=FALSE)
 if(cfg$input$mode=="simulate") { write.csv(raw,fn("simulated_responses"),row.names=FALSE); write.csv(sim$truth,fn("simulation_truth"),row.names=FALSE); write.csv(sim$theta,fn("simulation_true_theta"),row.names=FALSE) }
@@ -265,8 +320,22 @@ tl <- stack(theta[tcols]); names(tl) <- c("Theta","Dimension"); p <- ggplot(tl,a
 if(!is.null(corr) && nrow(corr)>1L) { corr <- cov2cor(corr); write.csv(corr,fn("dimension_correlations")) }
 long <- stack(x); names(long) <- c("Response","Item"); long <- long[!is.na(long$Response),]; p <- ggplot(long,aes(factor(Response)))+geom_bar(fill="#2C7FB8")+facet_wrap(~Item,scales="free_y")+theme_minimal(base_size=10)+labs(title="Response distributions",x="Category",y="Count"); ggsave(fn("response_distributions","png"),p,width=12,height=max(5,ceiling(ncol(x)/6)*2.2),dpi=300)
 mdtable <- function(z,d=3) { z <- as.data.frame(z); z[] <- lapply(z,function(v) if(is.numeric(v)) format(round(v,d),trim=TRUE) else as.character(v)); paste(c(paste(names(z),collapse=" | "),paste(rep("---",ncol(z)),collapse=" | "),apply(z,1,paste,collapse=" | ")),collapse="\n") }
-zh <- c("# IRT 自动分析报告","",sprintf("## %s",model_mode_label),sprintf("本次分析原始数据包含 %d 名被试与 %d 个项目；进入模型估计的被试数为 %d。缺失值策略为 `%s`：%s",n_before,ncol(x),n_after,cfg$input$missing,missing_note),"","## 数据与缺失值",mdtable(missing_summary),"","## 结果",mdtable(comparison),"","### 信度估计","边际信度（marginal_rxx）基于模型隐含的误差分布，仅适用于单维模型；经验信度（empirical_rxx）基于 MAP 能力估计值及其标准误逐维度计算；NA 表示该指标在当前模型/估计方式下不可用。",mdtable(reliability),"","### 项目参数",mdtable(pars),"","### 能力估计",mdtable(theta_summary),"","## 讨论与限制","模型选择不替代理论结构、计分方向、局部独立性和 DIF 检验。能力估计采用 MAP（最大后验）方法，存在向均值收缩（回归均值）的倾向，极端能力会被低估；解读极端组时应结合标准误（SE）。图形与表格均见同目录输出文件。")
-en <- c("# Automated IRT Analysis Report","",sprintf("## %s",model_mode_label),sprintf("The original data contained %d respondents and %d items; %d respondents entered estimation. Missing-data strategy `%s`: %s",n_before,ncol(x),n_after,cfg$input$missing,missing_note),"","## Data and missingness",mdtable(missing_summary),"","## Results",mdtable(comparison),"","### Reliability","Marginal reliability (marginal_rxx) is derived from the model-implied error distribution and is defined for unidimensional models only; empirical reliability (empirical_rxx) is computed per dimension from the MAP ability estimates and their standard errors; NA indicates the value is unavailable for the selected model or scoring method.",mdtable(reliability),"","### Item parameters",mdtable(pars),"","### Ability estimates",mdtable(theta_summary),"","## Discussion and limitations","Model selection does not replace construct theory, scoring-direction checks, local-dependence diagnostics, or DIF analyses. MAP ability estimates shrink toward the mean, so extreme abilities are underestimated; interpret extreme groups alongside their standard errors. Figures and tables are stored in this result directory.")
+zh <- c("# IRT 自动分析报告","",sprintf("## %s",model_mode_label),sprintf("本次分析原始数据包含 %d 名被试与 %d 个项目；进入模型估计的被试数为 %d。缺失值策略为 `%s`：%s",n_before,ncol(x),n_after,cfg$input$missing,missing_note),"","## 数据与缺失值",mdtable(missing_summary),"","## 结果",mdtable(comparison),"","## 估计方法与收敛诊断",
+sprintf("参数估计方法为 %s；迭代上限 %s 次，收敛判据为相邻迭代对数似然的相对变化小于 %s（mirt 的 TOL）。本次实际迭代 %s 次，模型%s。",
+        diag_get("estimator"), diag_get("max_iterations"), diag_get("em_tolerance"), diag_get("actual_iterations"),
+        if (est_conv) "已收敛" else if (est_hit_cap) sprintf("未收敛：已触及迭代上限（%s 次）", diag_get("max_iterations")) else "未收敛：优化器提前停止，请检查模型设定"),
+sprintf("能力量尺由模型识别方式决定：单组模型的潜变量均值固定为 0；潜变量方差在题目斜率自由估计时固定为 1，斜率被约束时（如 Rasch/1PL）改由模型估计（本次 %s）。项目参数与能力估计均与该量尺一致。", diag_get("latent_variances")),
+"能力估计采用 MAP（最大后验），先验为模型隐含的潜变量分布（Gaussian）；因此 MAP 相当于向 0 收缩，极端能力会被低估，解读极端组时应结合标准误（SE）。",
+sprintf("关键包版本：mirt %s、psych %s、GPArotation %s；%s。", diag_get("mirt_version"), diag_get("psych_version"), diag_get("GPArotation_version"), diag_get("r_version")),
+mdtable(diag_show),"","### 信度估计","边际信度（marginal_rxx）基于模型隐含的误差分布，仅适用于单维模型；经验信度（empirical_rxx）基于 MAP 能力估计值及其标准误逐维度计算；NA 表示该指标在当前模型/估计方式下不可用。",mdtable(reliability),"","### 项目参数",mdtable(pars),"","### 能力估计",mdtable(theta_summary),"","## 讨论与限制","模型选择不替代理论结构、计分方向、局部独立性和 DIF 检验。能力估计采用 MAP（最大后验）方法，存在向均值收缩（回归均值）的倾向，极端能力会被低估；解读极端组时应结合标准误（SE）。图形与表格均见同目录输出文件。")
+en <- c("# Automated IRT Analysis Report","",sprintf("## %s",model_mode_label),sprintf("The original data contained %d respondents and %d items; %d respondents entered estimation. Missing-data strategy `%s`: %s",n_before,ncol(x),n_after,cfg$input$missing,missing_note),"","## Data and missingness",mdtable(missing_summary),"","## Results",mdtable(comparison),"","## Estimation method and convergence",
+sprintf("Item parameters were estimated with %s; the iteration cap was %s and the convergence criterion is a relative change in the log-likelihood below %s (mirt's TOL). The fit used %s iterations and %s.",
+        diag_get("estimator"), diag_get("max_iterations"), diag_get("em_tolerance"), diag_get("actual_iterations"),
+        if (est_conv) "converged" else if (est_hit_cap) sprintf("did NOT converge: it hit the %s-iteration cap", diag_get("max_iterations")) else "did NOT converge: the optimizer stopped early, review the model specification"),
+sprintf("The latent scale follows the identification rule: for a single-group model the latent mean is fixed at 0, and the latent variance is fixed at 1 when all slopes are free or estimated when slopes are constrained (e.g. Rasch/1PL) - observed here as %s. Item parameters and ability estimates are on that same scale.", diag_get("latent_variances")),
+"Ability is scored by MAP (maximum a posteriori) under the model-implied latent density (Gaussian); MAP therefore shrinks estimates toward 0, so extreme abilities are underestimated and should be read together with their standard errors (SE).",
+sprintf("Key package versions: mirt %s, psych %s, GPArotation %s; %s.", diag_get("mirt_version"), diag_get("psych_version"), diag_get("GPArotation_version"), diag_get("r_version")),
+mdtable(diag_show),"","### Reliability","Marginal reliability (marginal_rxx) is derived from the model-implied error distribution and is defined for unidimensional models only; empirical reliability (empirical_rxx) is computed per dimension from the MAP ability estimates and their standard errors; NA indicates the value is unavailable for the selected model or scoring method.",mdtable(reliability),"","### Item parameters",mdtable(pars),"","### Ability estimates",mdtable(theta_summary),"","## Discussion and limitations","Model selection does not replace construct theory, scoring-direction checks, local-dependence diagnostics, or DIF analyses. MAP ability estimates shrink toward the mean, so extreme abilities are underestimated; interpret extreme groups alongside their standard errors. Figures and tables are stored in this result directory.")
 langs <- cfg$output$report_languages %||% c("zh","en"); if("zh"%in%langs) writeLines(zh,fn("report_zh","md")); if("en"%in%langs) writeLines(en,fn("report_en","md")); snapshot_ext <- if(config_ext=="json") "json" else "yaml"; file.copy(config_path,fn("config_snapshot",snapshot_ext),overwrite=TRUE); if(isTRUE(cfg$output$save_model_object %||% TRUE)) saveRDS(chosen$fit,fn("selected_model","rds"))
 write_run_manifest(out, cfg, c("mirt", "psych", "GPArotation", "readxl", "haven", "yaml", "jsonlite"), model_mode_label, config_path,
   extra = list(model = chosen_name, mirt_mode = if (is_mirt) mirt_mode else "not_applicable",
@@ -274,6 +343,19 @@ write_run_manifest(out, cfg, c("mirt", "psych", "GPArotation", "readxl", "haven"
                response_type = response_type, dimension_count = chosen$dimension, source = source_label,
                missing_strategy = cfg$input$missing, n_before = n_before, n_after = n_after,
                missing_cells_before_n = missing_cells_n, missing_cells_before_pct = round(missing_cells_pct, 2),
-               listwise_removed_n = removed_n))
+               listwise_removed_n = removed_n,
+               # 估计与收敛摘要（机器可读；完整 25 项见 estimation_diagnostics.csv）
+               estimation = list(estimator = diag_get("estimator"),
+                                 em_tolerance = diag_get("em_tolerance"),
+                                 max_iterations = suppressWarnings(as.numeric(diag_get("max_iterations"))),
+                                 actual_iterations = suppressWarnings(as.numeric(diag_get("actual_iterations"))),
+                                 converged = est_conv,
+                                 hit_iteration_cap = est_hit_cap,
+                                 logLik = suppressWarnings(as.numeric(diag_get("logLik"))),
+                                 ability_method = diag_get("ability_estimation_method"),
+                                 ability_prior = diag_get("ability_prior"),
+                                 latent_scale = diag_get("latent_scale_identification"),
+                                 mirt_version = diag_get("mirt_version"),
+                                 diagnostics_file = "estimation_diagnostics.csv")))
 auto_bic_ranking <- if(requested=="auto") paste(sprintf("%s=%.2f",comparison$Model,comparison$BIC),collapse=" | ") else NULL
 say("Selected model: %s",selected_label); if(!is.null(auto_bic_ranking)) cat("AUTO_BIC_RANKING=",auto_bic_ranking,"\n",sep=""); result_path <- enc2utf8(normalizePath(out)); result_hex <- paste(sprintf("%02X",as.integer(charToRaw(result_path))),collapse=""); cat("RESULT_DIR_UTF8_HEX=",result_hex,"\n",sep=""); cat("RESULT_DIR=",result_path,"\n",sep="")

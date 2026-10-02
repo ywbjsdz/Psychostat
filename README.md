@@ -25,9 +25,14 @@ Psychostat 把心理测量与统计最常见的任务封装成"**下载即用**"
 | 依赖 | 要求 | 缺失时的影响 |
 |---|---|---|
 | Windows + PowerShell | 5.1+（Win10/11 自带） | 无法运行（本工具面向 Windows） |
-| **R** | 已安装 R；启动器会优先寻找 D 盘中的 R，再寻找 PATH/注册表与 C 盘 | 完全无法分析 |
-| **Python**（可选） | python.exe 或 py 启动器 | 仅跳过 Word 结果报告，CSV/图/Markdown 报告不受影响；找到 Python 后会自动安装 pandas、python-docx |
-| 网络（仅首次） | 自动从 CRAN 安装缺失 R 包 | 首次运行需联网 |
+| **R** | 免安装版**已随包带**（`runtime\R`），无需安装；源码用法才要自己装 R，此时启动器按「项目内 → D 盘 → PATH → 注册表 → C 盘」顺序查找 | 完全无法分析 |
+| **Python**（可选） | 免安装版**已随包带**（`runtime\Python`）；源码用法可用 python.exe 或 py 启动器 | 仅跳过 Word 结果报告，CSV/图/Markdown 报告不受影响；源码用法找到 Python 后会自动安装 pandas、python-docx |
+| 网络（仅首次） | **免安装版不需要联网**；源码用法才需从 CRAN 安装缺失 R 包 | 源码用法首次运行需联网 |
+
+> ⚠️ **上表针对「源码 / 开发」用法。** GitHub Releases 里的**免安装版 zip** 已带 R 4.5.2、Python 3.14.2
+> 与**全部所需 R 包**，**不需要装 R、不需要联网、不需要管理员权限**：解压到任意位置后直接双击
+> `启动Psychostat界面.bat` 即可（启动器会**相对项目文件夹**优先找到 `runtime\R` 与 `runtime\Python`，
+> 找不到才回落 D 盘 / PATH / 注册表 / C 盘）。详见包内《先读我（必读）.txt》。
 
 安装 Python 依赖（可选，仅 Word 结果报告需要）：
 ```powershell
@@ -203,13 +208,12 @@ Psychostat/
 ├─ psychostat_env.ps1        共享环境预检 + 文件选择弹窗（三分支共用）
 ├─ examples/                 配置模板与静默调用示例（yaml/json/csv）
 │   └─ simulated_datasets/   14 个可直接试跑的模拟数据集（CTT ×5 / IRT ×9）+ 生成真值 + 配置 + 使用说明
-├─ docs/                     项目文档（md + Word 版）
-│   ├─ 心理统计使用说明.md / CTT使用说明.md                    分支使用说明（md 为源，Word 版由生成器产出）
-│   ├─ IRT工具使用说明.md                                     IRT 分支使用说明（Markdown 源，Word 版打包时生成）
+├─ docs/                     项目文档源（Markdown；下面几份的**源文件**）
+│   ├─ 心理统计使用说明.md / CTT使用说明.md / IRT工具使用说明.md   三个分支的使用说明源文件
 │   ├─ Psychostat_完整使用说明书.md                           完整说明书源文件（含 21 个方法的统计注释）
 │   └─ 内部问题清单（开发用）                                  已知问题与改进路线（不随仓库发布；使用者请读 README 第十章）
 ├─ Psychostat完整使用说明书.docx  完整说明书 Word 版（根目录，可直接双击）
-├─ Psychostat使用说明.docx     分支说明合并版（**打包时**由 merge_manuals.py 生成，不随仓库保存）
+├─ Psychostat 分支使用说明.docx   三个分支说明的合并 Word 版（**打包时**由 merge_manuals.py 生成，不随仓库保存）
 ├─ SPSS与Psychostat心理统计模块输出对应.docx  20 个模块的逐方法 SPSS 数值对照记录（开头列明范围与已知差异）
 ├─ outputs/                  运行结果（自动生成；已被 .gitignore 排除，可随时清理）
 ├─ tests/                    冒烟自检（smoke_test.ps1）与数值回归测试（test_numeric.R）、夹具（data/、fixtures/）
@@ -223,6 +227,13 @@ Psychostat/
 └─ requirements.txt / LICENSE / README.md / CHANGELOG.md / CITATION.cff /
    CONTRIBUTING.md（开发约定、PowerShell 5.1 专项坑、补 SPSS 夹具流程）/ renv.lock（参考快照）
 ```
+
+> **注意**：上面这份清单是**仓库 / 开发目录**的样子。发布压缩包（`Psychostat v0.1.1.zip`）里
+> **只放使用者需要的 9 份文档**：《先读我（必读）》《功能速览》《完整使用说明书》《分支使用说明》
+> 《输出验证文档》《免责声明》《免安装版-测试方法》《AI智能体工作流》与 README。
+> 其余（`CHANGELOG.md`、`CONTRIBUTING.md`、`docs/` 下的源文件、SPSS 对照的独立 Word 版、
+> 三份分支说明书的 md 单行本等）都留在仓库里——**内容没有丢**，只是不再重复打包；
+> SPSS 对照的全文已并入《输出验证文档》第一部分。
 
 ---
 
@@ -252,7 +263,13 @@ Psychostat/
     ```powershell
     .\notes\make_portable_release.ps1
     ```
-    产出的 zip 解压到 D 盘后得到 `D:\Psychostat`（工具）与 `D:\Psychostat-R`（随包 R），
+    产出的 zip **解压到任意磁盘、任意文件夹都能直接用**：里面有 `Psychostat\`（工具）与
+    `Psychostat-R\`（随包 R）、`Psychostat-Python\`（随包 Python）。启动器**相对项目文件夹**查找
+    运行时（先 `<项目>\runtime\R\`、`<项目>\Psychostat-R\`，再上一级，还认压缩包多一层外壳目录的情况），
+    之后才回落到 `D:\Psychostat-R` / `D:\R-*` / PATH / 注册表 / 自动安装——所以**不再要求必须解压到
+    `D:\` 根目录**（放在 `D:\任意文件夹\`、桌面或文档里都能跑）。R 包与 Python 依赖也**默认装进
+    项目内的 `.psychostat\`**（你自己的文件夹，天然可写、免管理员权限），写不进去才逐级回落到
+    D 盘 / C 盘 / `%LOCALAPPDATA%`。
     使用者**不需要装 R、不需要联网、不需要管理员权限**。脚本只复制依赖闭包内的 R 包（比整包小得多），
     并且**会在离线状态下用副本 R 真实跑完 88 条数值回归断言**来证明剪枝没剪坏东西。
     随包还带 `运行离线自检.bat`（使用者一键自检）与 `免安装版-测试方法.md`（三档验收流程）。
@@ -266,19 +283,19 @@ Psychostat/
 本工具适合**课程作业、毕业论文、小论文与教学演示**。以下边界请务必知悉，**不要把它当成"零复核即可投稿"的黑箱**：
 
 1. **定位**：面向教学与一般科研辅助，不是临床、选拔或其他高风险决策工具；不做因果推断（中介/调节只是统计意义上的）。
-2. **SPSS 对照已做过逐方法的人工校验**：根目录 `SPSS与Psychostat心理统计模块输出对应.docx` 记录了 20 个模块的 Psychostat↔SPSS 数值并排对照（含 16 处「结论：一致」），多数统计量可对到小数点后 2–3 位。**第二十节（调节效应）已做到与 SPSS PROCESS 完全对齐**——修复均值中心化后，4 个系数与 4 个标准误四位小数完全相同（`constant = 30.5128 / x = .3158 (SE .0671) / w = .5825 (SE .0845) / Int_1 = −.0018`，R² = .5085，F(3,116) = 40.0019）。但请以该文件开头的「校对范围与已知差异」为准：① 未覆盖第 21 个模块（功效分析），第四节的独立样本 t 检验缺 SPSS 侧输出；② 混合设计仍有 3 处未逐位对齐（EM 边际均值 SE、被试内配对比较的误差项、Huynh-Feldt ε），前两项需第二组真实 SPSS 输出才能锁定；③ 该文件不随 CI 运行，**不能防止后续改动引入回归**——正式发表前请对关键表格再做一次手工抽查。
+2. **SPSS 对照已做过逐方法的人工校验**：根目录 `Psychostat 输出验证文档.docx` 第一部分（SPSS 对照；源文件 `SPSS与Psychostat心理统计模块输出对应.docx`）记录了 20 个模块的 Psychostat↔SPSS 数值并排对照（含 16 处「结论：一致」），多数统计量可对到小数点后 2–3 位。**第二十节（调节效应）已做到与 SPSS PROCESS 完全对齐**——修复均值中心化后，4 个系数与 4 个标准误四位小数完全相同（`constant = 30.5128 / x = .3158 (SE .0671) / w = .5825 (SE .0845) / Int_1 = −.0018`，R² = .5085，F(3,116) = 40.0019）。但请以该文件开头的「校对范围与已知差异」为准：① 未覆盖第 21 个模块（功效分析），第四节的独立样本 t 检验缺 SPSS 侧输出；② 混合设计仍有 3 处未逐位对齐（EM 边际均值 SE、被试内配对比较的误差项、Huynh-Feldt ε），前两项需第二组真实 SPSS 输出才能锁定；③ 该文件不随 CI 运行，**不能防止后续改动引入回归**——正式发表前请对关键表格再做一次手工抽查。
 3. **回归测试覆盖有限**：数值回归断言只有二十余条，且多数验的是数据生成器；Type III 平方和、事后比较、球形校正、非参数 Z 等口径尚无数值断言。详见「内部问题清单」（开发用，不随仓库发布）。
 4. **自动生成的结果示范句是模板**：句子里的方向、构念名由你自行核对（工具已改为数据驱动并标注"模板"），**不要不加核对直接粘贴进论文**。
 5. **缺失值**：统计分支为整例删除（listwise），不报告删除比例，也不做多重插补或 FIML。
 6. **不支持**：多层线性模型、结构方程全模型、潜变量增长模型、网络分析、DIF、测量不变性、CAT。这些请用 Mplus / lavaan / 专用工具。
-7. **环境**：仅 Windows 10/11 + PowerShell 5.1+；首次运行需联网安装 R 包（国内可能几十分钟）。
+7. **环境**：仅 Windows 10/11 + PowerShell 5.1+。**免安装版**已随包带 R 4.5.2、Python 3.14.2 与全部所需 R 包，**首次运行无需联网**；只有**源码 / 开发**用法才需要自己装 R（那才会首次运行联网装 R 包，国内可能几十分钟）。
 8. **AI / 静默模式**：静默模式**不自动安装环境**；缺 Python 时仍会报告成功但不会产出 Word 报告（`complete` 事件会带 `report_note` 说明）。
 
 ---
 
 ## 十一、English Quick Start
 
-Psychostat bundles three Windows PowerShell tools for psychological measurement & statistics teaching (stats with SPSS-comparable output · CTT · IRT). Requirements: R (Rscript in PATH); Python optional (Word result reports). Run `.\run_psychostat.ps1`, pick 1/2/3, or call a launcher directly, e.g. `.\run_stats_analysis.ps1 -Simulate` for a full 21-method teaching demo, `.\run_stats_analysis.ps1 -Method independent_t -Data .\my.csv` for your own data, and `-Silent -ConfigJson .\examples\silent_stats_demo.json` for machine/AI-agent use. Every run writes a timestamped folder under `outputs\` with SPSS-style tables, 300-dpi figures and bilingual Word result reports; simulated datasets are exported as UTF-8-BOM CSV so results can be cross-checked in SPSS. See `docs\` for branch manuals and the changelog for known limitations.
+Psychostat bundles three Windows PowerShell tools for psychological measurement & statistics teaching (stats with SPSS-comparable output · CTT · IRT). The **portable release** (GitHub Releases) already ships R 4.5.2, Python 3.14.2 and every required R package, so **no installation and no network are needed** — unzip anywhere and run `启动Psychostat界面.bat`; the launcher finds the bundled `runtime\R` and `runtime\Python` relative to the project folder. For a **source checkout**, requirements are R (a discoverable Rscript) and optionally Python (Word result reports). Run `.\run_psychostat.ps1`, pick 1/2/3, or call a launcher directly, e.g. `.\run_stats_analysis.ps1 -Simulate` for a full 21-method teaching demo, `.\run_stats_analysis.ps1 -Method independent_t -Data .\my.csv` for your own data, and `-Silent -ConfigJson .\examples\silent_stats_demo.json` for machine/AI-agent use. Every run writes a timestamped folder under `outputs\` with SPSS-style tables, 300-dpi figures and bilingual Word result reports; simulated datasets are exported as UTF-8-BOM CSV so results can be cross-checked in SPSS. See `Psychostat 分支使用说明.docx` for per-branch manuals, `Psychostat完整使用说明书.docx` for the full handbook, and the repository changelog for known limitations.
 
 ---
 

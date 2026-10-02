@@ -1,0 +1,2 @@
+"chisq","df","chisq_df","p","CFI","TLI","RMSEA","SRMR","AIC","BIC","chisq_df_pass_lt_5","CFI_pass_gt_90","TLI_pass_gt_90","RMSEA_pass_lt_08","SRMR_pass_lt_08"
+114.310915373037,167,0.684496499239742,NA,1,1.00809814498688,0,0.0356532119507727,NA,NA,TRUE,TRUE,TRUE,TRUE,TRUE

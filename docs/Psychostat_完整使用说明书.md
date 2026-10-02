@@ -106,10 +106,17 @@ Psychostat 在你的电脑上只补充安装两类东西：**R 本体**（若你
 
 | 内容 | 默认位置（按优先级） | 说明 |
 |---|---|---|
-| 本工具新增的 R 包 | `D:\Psychostat-R-Library` → R 安装目录旁的 `Psychostat-R-Library` → `C:\Psychostat-R-Library` → `%LOCALAPPDATA%\Psychostat\Psychostat-R-Library` | **不与你已有的 R 包混在一起**（不动系统安装目录里的包） |
-| 本工具新增的 Python 依赖 | `<Python目录>\Psychostat-Python-User` → `C:\Psychostat-Python-User` → `%LOCALAPPDATA%\Psychostat\Psychostat-Python-User` | pandas / python-docx / lxml |
+| 本工具新增的 R 包 | **项目内** `<项目>\.psychostat\Psychostat-R-Library` → `D:\Psychostat-R-Library` → R 安装目录旁的 `Psychostat-R-Library` → `C:\Psychostat-R-Library` → `%LOCALAPPDATA%\Psychostat\Psychostat-R-Library` | **不与你已有的 R 包混在一起**（不动系统安装目录里的包）。**首选项目内是有意的**：项目文件夹是你自己解压出来的，天然可写、免管理员权限；而 `D:\` 根目录在很多机器上要管理员才能写，写不进去正是"数据传上去分析不了"的常见原因 |
+| 本工具新增的 Python 依赖 | **项目内** `<项目>\.psychostat\Psychostat-Python-User` → `<Python目录>\Psychostat-Python-User` → `C:\Psychostat-Python-User` → `%LOCALAPPDATA%\Psychostat\Psychostat-Python-User` | pandas / python-docx / lxml |
 | 临时目录重定向 | `C:\PsychostatTemp` | 仅当你的 TEMP 路径含中文时启用（例如中文用户名） |
 | 安装清单 | `%LOCALAPPDATA%\Psychostat\install_manifest.json` | 记录装了什么、装在哪、什么时候装；**不随项目文件夹拷走**（它是这台机器的信息） |
+
+> **R 与 Python 本体也是"相对项目文件夹"找的**（2026-10 起）：启动器按
+> `<项目>\runtime\R\bin\Rscript.exe` → `<项目>\Psychostat-R\bin\Rscript.exe` → 上一级的
+> `runtime\R\` / `Psychostat-R\` → 再上一级的 `Psychostat-R\` 依次查找，之后才回落到
+> `D:\Psychostat-R`、`D:\R-*`、PATH、注册表、`C:\Program Files\R` 与自动安装。
+> 因此**免安装包解压到任意磁盘的任意文件夹**（包括多一层外壳目录）都能直接运行，
+> 不再要求"必须解压到 `D:\` 根目录"；Python 同理（`runtime\Python\`、`Psychostat-Python\`，含上一级）。
 
 **清理方式（三种任选，都不需要记命令）：**
 

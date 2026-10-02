@@ -199,11 +199,15 @@ def svg_text(x, y, s, cls="axt", anchor="middle", extra="") -> str:
 # ── CSS / JS（内联、无外链；深浅色跟随系统）──────────────────────────
 CSS = """*{box-sizing:border-box}
 html{scroll-behavior:smooth}
-:root{--bg:#f5f6f8;--card:#ffffff;--ink:#1c2733;--ink-soft:#5b6b7b;--line:#d8dee6;
---accent:#2b6cb0;--accent2:#c05621;--th-bg:#eef2f6;--z-hit:#c53030;--iqr-only:#2b6cb0;--ok:#2f855a}
-@media (prefers-color-scheme: dark){:root{--bg:#12161b;--card:#1c222a;--ink:#e2e8f0;
---ink-soft:#9fb0c0;--line:#39424d;--accent:#63b3ed;--accent2:#f6ad55;--th-bg:#232b35;
---z-hit:#fc8181;--iqr-only:#63b3ed;--ok:#68d391}}
+:root{color-scheme:light dark;--bg:#f4f6f8;--card:#ffffff;--ink:#16202b;--ink-soft:#5a6a7a;--line:#dce3ea;
+--line-soft:#eaeff4;--accent:#1f6fb2;--accent-ink:#155a92;--accent-wash:rgba(31,111,178,.08);--th-bg:#eef3f8;
+--row-hover:#eef4fa;--accent2:#c05621;--z-hit:#b3261e;--iqr-only:#1f6fb2;--ok:#2f7d5a;--warn:#9a6700;--bad:#b3261e;
+--radius:10px;--radius-sm:6px;--measure:68ch;--shadow-1:0 1px 2px rgba(16,32,48,.06),0 10px 26px -20px rgba(16,32,48,.45)}
+@media (prefers-color-scheme: dark){:root{--bg:#10151a;--card:#182028;--ink:#e6edf3;
+--ink-soft:#9db0c0;--line:#2f3a45;--line-soft:#232c35;--accent:#68b0e8;--accent-ink:#8cc6f5;
+--accent-wash:rgba(104,176,232,.12);--th-bg:#1e2731;--row-hover:#1e2833;--accent2:#e8a06a;
+--z-hit:#f08a84;--iqr-only:#68b0e8;--ok:#5fbc8f;--warn:#e0b341;--bad:#f08a84;
+--shadow-1:0 1px 2px rgba(0,0,0,.45),0 12px 30px -22px rgba(0,0,0,.8)}}
 body{margin:0;background:var(--bg);color:var(--ink);line-height:1.75;
 font-family:"Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Segoe UI",sans-serif;font-size:15px}
 .nav{position:fixed;top:0;left:0;bottom:0;width:232px;overflow-y:auto;background:var(--card);
@@ -284,7 +288,91 @@ border-radius:6px;padding:6px 10px;margin:10px 0}
 @keyframes cellin{from{opacity:0}to{opacity:1}}
 @keyframes roll{from{transform:translateY(0)}to{transform:translateY(var(--ty))}}
 @keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
-@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}"""
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+/* ── 设计细化层 ────────────────────────────────────────────────────────────
+   本层排在既有规则之后，用同样的类名做覆盖式细化，因此 stats/CTT/IRT 三个分支
+   共用同一套观感，且不需要改动任何生成逻辑。约束：报告必须保持 0 个外部网络引用
+   （字体只用系统字族、图标只用文字与内联 CSS），不依赖 JS，不改动任何动画关键帧。
+   细化集中在四件事：① 排版尺度与可读行宽 ② 键盘可达性与焦点可见
+   ③ 表格可扫读性 ④ 打印与低动效适配。 */
+html{-webkit-text-size-adjust:100%}
+body{font-size:15px;line-height:1.68}
+h1,h2,h3{text-wrap:balance;letter-spacing:-.01em}
+.rhead{padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.rhead h1{font-size:1.5rem;line-height:1.24;margin:0 0 6px}
+.subtitle{margin:0}
+section>p,.prose{max-width:var(--measure)}
+p{margin:.7em 0}
+section{margin:44px 0;scroll-margin-top:16px}
+section:target h2{background:var(--accent-wash)}
+h2{font-size:1.15rem;line-height:1.32;margin:0 0 12px;padding-left:12px;border-left:3px solid var(--accent)}
+h3{font-size:1rem;line-height:1.4;margin:20px 0 6px;color:var(--accent-ink)}
+/* 跳到正文 + 可见焦点（键盘用户不必逐个穿过后面的导航项） */
+.skiplink{position:absolute;left:-9999px;top:0;z-index:99;background:var(--card);color:var(--accent-ink);
+border:1px solid var(--line);border-radius:0 0 var(--radius-sm) 0;padding:10px 16px;font-size:.86rem;text-decoration:none}
+.skiplink:focus{left:0}
+a{color:var(--accent-ink)}
+a:focus-visible,.navlist a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+/* 左导航：更稳的层次，当前项同时用色与粗体标记（不只靠颜色） */
+.nav{width:240px;padding:20px 12px 34px;box-shadow:1px 0 0 var(--line)}
+.brand{font-size:1rem}
+.brandsub{font-size:.72rem;line-height:1.45;margin-bottom:14px}
+.navlist a{padding:6px 10px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+transition:background .15s ease,color .15s ease}
+.navlist a:hover{background:var(--accent-wash);color:var(--accent-ink)}
+.navlist a.active{background:var(--accent-wash);color:var(--accent-ink);font-weight:650}
+main{margin-left:256px;max-width:1060px;padding:34px 40px 80px}
+/* 三线表：加宽行距、悬停高亮；首列仍保持不透明底，避免横向滚动时文字穿透 */
+.tblwrap{border-radius:var(--radius-sm)}
+.tline thead th{padding:8px 11px}
+.tline tbody td{padding:6px 11px}
+.tline tbody td:first-child{background:var(--card)}
+.tline tbody tr:hover td,.tline tbody tr:hover td:first-child{background:var(--row-hover)}
+.tcap{font-size:.9rem;margin:20px 0 6px;color:var(--ink)}
+.tnote{line-height:1.6;max-width:var(--measure)}
+/* 长表（>30 行）单独给滚动容器 + 吸顶表头，短表保持整页滚动不变 */
+.tblwrap.long{max-height:76vh;overflow:auto}
+.tblwrap.long .tline thead th{position:sticky;top:0;z-index:2}
+.tblwrap.long .tline thead th:first-child{z-index:3}
+/* 结论/状态提示块：左侧色条 + 文字标签，不使用 emoji 或外部图标 */
+.callout{display:block;border:1px solid var(--line);border-left-width:4px;border-radius:var(--radius-sm);
+background:var(--card);padding:11px 14px;margin:12px 0;max-width:var(--measure);box-shadow:var(--shadow-1)}
+.callout .ch{display:block;font-weight:650;margin-bottom:3px;font-size:.9rem}
+.callout .ct{font-size:.86rem;color:var(--ink-soft);line-height:1.65}
+.callout.ok{border-left-color:var(--ok)}.callout.ok .ch{color:var(--ok)}
+.callout.warn{border-left-color:var(--warn)}.callout.warn .ch{color:var(--warn)}
+.callout.bad{border-left-color:var(--bad)}.callout.bad .ch{color:var(--bad)}
+.callout.info{border-left-color:var(--accent)}.callout.info .ch{color:var(--accent-ink)}
+.spss{background:var(--accent-wash);border-left:3px solid var(--accent);
+border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:7px 11px;font-size:.85rem;
+line-height:1.6;max-width:var(--measure)}
+.kv th{padding-right:14px}
+.note,.skipnote{line-height:1.6;max-width:var(--measure)}
+/* 只读给屏幕阅读器的内容（表格标题用它，避免与 .tcap 视觉标题重复） */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+clip:rect(0 0 0 0);white-space:nowrap;border:0}
+svg.chart{border-radius:var(--radius-sm);box-shadow:var(--shadow-1)}
+figure.fig img{border-radius:var(--radius-sm);box-shadow:var(--shadow-1)}
+/* 打印：去掉导航与阴影，长表不再内部滚动，避免打印时被硬切 */
+@media print{
+ .skiplink,.nav{display:none!important}
+ main{margin:0;max-width:none;padding:0}
+ body{background:#fff;color:#000;font-size:10.5pt;line-height:1.5}
+ .rhead{border-bottom-color:#999}
+ section{margin:18px 0}
+ h2{break-after:avoid}
+ a{color:#000;text-decoration:none}
+ .tblwrap,.callout,figure.fig,svg.chart{box-shadow:none;border-radius:0}
+ .tblwrap,.tblwrap.long{overflow:visible;max-height:none}
+ .tblwrap.long .tline thead th{position:static}
+ .callout{background:#fff;border-color:#999}
+ figure.fig,svg.chart{break-inside:avoid}
+}
+@media (max-width:920px){
+ .nav{position:static;width:auto;bottom:auto;max-height:40vh;padding:10px 12px;box-shadow:none}
+ main{margin-left:0;padding:20px 16px 56px}
+}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}"""
 
 # 内联 IntersectionObserver（约 15 行原生 JS）：滚动时高亮左侧导航当前节。
 NAV_JS = """(function(){
@@ -294,7 +382,7 @@ if(!links.length||!("IntersectionObserver" in window))return;
 var io=new IntersectionObserver(function(es){
   es.forEach(function(e){
     if(e.isIntersecting){
-      links.forEach(function(a){a.classList.toggle("active",a.getAttribute("href")==="#"+e.target.id);});
+      links.forEach(function(a){var on=a.getAttribute("href")==="#"+e.target.id;a.classList.toggle("active",on);if(on){a.setAttribute("aria-current","true");}else{a.removeAttribute("aria-current");}});
     }
   });
 },{rootMargin:"-15% 0px -70% 0px"});
@@ -309,9 +397,10 @@ def assemble_page(title: str, subtitle: str, nav: list[tuple[str, str]], body: s
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{esc(title)}</title>\n<style>{CSS}</style>\n</head>\n<body>\n"
+        '<a class="skiplink" href="#main">跳到正文</a>\n'
         f'<nav class="nav" aria-label="报告导航"><div class="brand">Psychostat</div>'
         f'<div class="brandsub">自包含 HTML 报告（离线可读）</div>'
-        f'<div class="navlist">{nav_html}</div></nav>\n<main>\n'
+        f'<div class="navlist">{nav_html}</div></nav>\n<main id="main">\n'
         f'<header class="rhead"><h1>{esc(title)}</h1><p class="subtitle">{esc(subtitle)}</p></header>\n'
         f"{body}\n</main>\n<script>{NAV_JS}</script>\n</body>\n</html>\n"
     )
@@ -322,6 +411,11 @@ def section_html(sid: str, heading: str, inner: str) -> str:
 
 
 # ── 三线表（顶线/表头下线/底线；首列冻结；行内 animation-delay 逐行淡入）──
+# 超过该行数的表才启用「内部滚动 + 吸顶表头」（.tblwrap.long）：短表保持整页滚动的原有行为，
+# 长表（如逐被试缺失概览 100 行、项目参数 200 行）表头才不会随页面滚出视野。
+LONG_TABLE_ROWS = 30
+
+
 def table_html(df: pd.DataFrame, title: str, p_matrix: bool = False,
                max_rows: int = 200, note: str | None = None) -> str:
     out = [f'<div class="tcap">{esc(title)}</div>']
@@ -342,7 +436,8 @@ def table_html(df: pd.DataFrame, title: str, p_matrix: bool = False,
             for j, v in enumerate(row))
         # animation-delay 直接写内联 style（不依赖 JS）
         rows.append(f'<tr style="animation-delay:{i * 0.03:.2f}s">{tds}</tr>')
-    out.append('<div class="tblwrap"><table class="tline"><thead><tr>' + thead +
+    wrap_cls = "tblwrap long" if len(df) > LONG_TABLE_ROWS else "tblwrap"
+    out.append(f'<div class="{wrap_cls}"><table class="tline"><thead><tr>' + thead +
                "</tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>")
     if note:
         out.append(f'<div class="tnote">注：{esc(note)}</div>')
@@ -1227,10 +1322,71 @@ IRT_DISCUSSION = ("模型选择反映当前数据与预设比较准则，不能�
                   "建议进一步评估反向计分、局部独立性、DIF、外部效标及跨样本稳定性。"
                   "能力估计采用 MAP（最大后验）方法，存在向均值收缩（回归均值）的倾向，极端能力会被低估；解读极端组时应结合标准误（SE）。"
                   "表格采用 结果报告风格三线表，图形以 300 dpi PNG 保存。")
-IRT_METHOD = "数据来源、项目列、模型、估计器、迭代上限与输出设置均保存在 config_snapshot.yaml 中，以支持可复现性。"
+IRT_METHOD = ("数据来源、项目列、模型、估计器、迭代上限与输出设置均保存在 config_snapshot.yaml 中，以支持可复现性。"
+              "本次运行实际采用的估计方法、迭代上限与收敛判据、是否收敛与实际迭代次数、能力量尺的识别方式、"
+              "MAP 所用先验，以及 mirt/psych/GPArotation 与 R 的版本，见下一节「估计方法与收敛诊断」，"
+              "并同时以机器可读形式写入 run_manifest.json 的 estimation 段。")
 IRT_FIG_CAPS = ["图 1. 项目反应分布。", "图 2. 项目特征曲线（MIRT 为条件切片）。",
                 "图 3. 项目信息函数（MIRT 为条件切片）。", "图 4. 测验信息函数（MIRT 为条件切片）。",
                 "图 5. MAP 能力估计分布。"]
+# 估计方法与收敛诊断：estimation_diagnostics.csv 的 Metric 列是 ASCII 键（语言无关、
+# 可直接与 run_manifest.json 的 estimation 段对接），这里只做「键 → 中文标签」的展示映射。
+IRT_DIAG_LABELS = {
+    "estimator": "参数估计方法", "em_tolerance": "收敛判据（mirt TOL）",
+    "max_iterations": "迭代上限（NCYCLES）", "actual_iterations": "实际迭代次数",
+    "converged": "是否收敛", "hit_iteration_cap": "是否触及迭代上限",
+    "iterations_unused": "剩余可用迭代", "logLik": "对数似然 logLik",
+    "AIC": "AIC", "BIC": "BIC", "SABIC": "SABIC", "n_free_parameters": "自由参数个数",
+    "quadrature_points": "求积节点数", "theta_lim": "能力积分区间",
+    "latent_density": "潜变量分布", "ability_estimation_method": "能力估计方法",
+    "ability_prior": "MAP 所用先验", "latent_scale_identification": "能力量尺识别方式",
+    "latent_means": "潜变量均值", "latent_variances": "潜变量方差",
+    "standard_error_type": "标准误类型（SE.type）", "r_version": "R 版本",
+    "mirt_version": "mirt 版本", "psych_version": "psych 版本",
+    "GPArotation_version": "GPArotation 版本",
+}
+IRT_DIAG_NOTE = ("收敛判据取自 mirt 的 TOL：EM 迭代中相邻两次对数似然的相对变化低于该值即判定收敛；"
+                 "「实际迭代次数」为本次拟合真正用掉的 EM 循环数。项目参数与能力估计都位于同一潜变量量尺上，"
+                 "该量尺由识别规则确定（单组模型潜变量均值固定为 0；方差在斜率自由估计时固定为 1，"
+                 "斜率被约束时改为估计）。能力估计使用 MAP，其先验为模型隐含的潜变量分布，"
+                 "因此估计值会向 0 收缩，极端能力偏低。完整键值同时写入 run_manifest.json 的 estimation 段。")
+
+
+def irt_diagnostics_section(folder: Path, prefix: str) -> str:
+    """估计方法与收敛状态：结论用 callout 明示，明细用键值表列出（含关键包版本）。"""
+    p = folder / f"{prefix}_estimation_diagnostics.csv"
+    if not p.exists():
+        return ('<div class="callout info"><span class="ch">估计与收敛诊断</span>'
+                '<span class="ct">该结果目录没有 estimation_diagnostics.csv（通常由较旧版本的分析脚本生成），'
+                '因此无法展示估计方法与收敛状态。重新运行一次分析即可生成该文件。</span></div>')
+    df = read_csv_relaxed(p)
+    if df.empty or "Metric" not in df.columns or "Value" not in df.columns:
+        return '<div class="skipnote">estimation_diagnostics.csv 缺少 Metric/Value 列，诊断表 skipped。</div>'
+    d = {str(k): str(v) for k, v in zip(df["Metric"], df["Value"])}
+    conv = d.get("converged", "").strip().upper() == "TRUE"
+    hit = d.get("hit_iteration_cap", "").strip().upper() == "TRUE"
+    est = d.get("estimator", "NA")
+    iters, cap, tol = d.get("actual_iterations", "NA"), d.get("max_iterations", "NA"), d.get("em_tolerance", "NA")
+    if conv:
+        cls, head = "ok", "已收敛"
+        body = (f"{est} 迭代在第 {iters} 次满足收敛判据（相邻对数似然的相对变化 < {tol}），"
+                f"未触及 {cap} 次的上限；参数估计可视为稳定。")
+    elif hit:
+        cls, head = "bad", "未收敛（触及迭代上限）"
+        body = (f"{est} 迭代达到 {cap} 次上限时仍未满足收敛判据（相对变化 < {tol}）。"
+                "结果可能不稳定：建议提高迭代上限、改用更简模型或增加样本量后重跑。")
+    else:
+        cls, head = "warn", "未收敛（优化器提前停止）"
+        body = (f"{est} 在第 {iters} 次停止但未满足收敛判据（相对变化 < {tol}）；迭代上限为 {cap}。"
+                "请检查模型设定与数据结构。")
+    rows = "".join(
+        f'<tr><th scope="row">{esc(lab)}</th><td>{esc(d[k])}</td></tr>'
+        for k, lab in IRT_DIAG_LABELS.items() if k in d)
+    return (f'<div class="callout {cls}"><span class="ch">{esc(head)}</span>'
+            f'<span class="ct">{esc(body)}</span></div>'
+            f'<div class="tcap">估计与收敛明细</div>'
+            f'<div class="tblwrap"><table class="kv"><tbody>{rows}</tbody></table></div>'
+            f'<div class="tnote">注：{esc(IRT_DIAG_NOTE)}</div>')
 
 
 def build_irt(folder: Path) -> tuple[str, str]:
@@ -1268,6 +1424,7 @@ def build_irt(folder: Path) -> tuple[str, str]:
 
     add_section("sec-summary", "摘要", f"<p>{esc(abstract)}</p>")
     add_section("sec-method", "方法", f"<p>{esc(IRT_METHOD)}</p>")
+    add_section("sec-diag", "估计方法与收敛诊断", irt_diagnostics_section(folder, prefix))
 
     inner = [tbl(missing, "数据与缺失值概览", IRT_MISSING_NOTE)]
     if not person_missing.empty:

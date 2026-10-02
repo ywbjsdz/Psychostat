@@ -1,0 +1,4 @@
+"factor1","factor2","correlation","correlation_lt_85","sqrt_AVE_exceeds_correlation"
+"F1","F2",0.491221128251734,TRUE,TRUE
+"F1","F3",0.349577801053502,TRUE,TRUE
+"F2","F3",0.399424741052071,TRUE,TRUE

@@ -117,9 +117,17 @@ def strip_default_bibliography_style(path) -> None:
 
 def main():
     doc = Document(); style_doc(doc)
-    title = doc.add_heading("Psychostat 使用说明（IRT · CTT · 心理统计）", 0)
+    title = doc.add_heading("Psychostat 分支使用说明（心理统计 · CTT · IRT）", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    doc.add_paragraph("统一入口｜三个任务共用一个启动器与 outputs 输出约定", style="Subtitle").alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_paragraph("三个分支的详细用法｜统一入口与 outputs 输出约定｜v0.1.1", style="Subtitle").alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_heading("这部手册是什么，和《完整使用说明书》怎么分工", 1)
+    doc.add_paragraph(
+        "本手册按**分支**组织：你确定自己要跑心理统计 / CTT / IRT 中的哪一条线时，直接看对应那一部分，"
+        "里面有该分支的每个方法、参数、结果文件与常见问题。")
+    doc.add_paragraph(
+        "《Psychostat完整使用说明书.docx》按**流程**组织：从 10 分钟上手、数据准备、看结果、写作模板，"
+        "到面向研究者的进阶用法、面向教师的用法与已知限制。两份手册面向不同的查法，内容不重复——"
+        "第一次用建议先读《完整使用说明书》第 1 章，之后按分支查本手册。")
     doc.add_heading("总入口与共同说明", 1)
     doc.add_paragraph(
         "在 Psychostat 文件夹打开 PowerShell 运行 .\\run_psychostat.ps1，先选择任务：1. 心理统计（平时的统计课内容："
@@ -127,7 +135,10 @@ def main():
         "信效度、EFA、CFA）；3. IRT（项目反应理论：Rasch/2PL/3PL/GRM/MIRT）。也可以直接运行对应启动器："
         "run_stats_analysis.ps1 / run_ctt_analysis.ps1 / run_irt_analysis.ps1。")
     doc.add_paragraph(
-        "共同要求：安装 R（启动器会自动在 D 盘、PATH、注册表与 C 盘依次查找；未装时首次运行会询问是否自动下载安装，包会自动装好）；Word 结果报告需要 Python（含 pandas 与 python-docx，未装时首次运行会询问是否自动安装）。"
+        "共同要求：本包是**免安装版**，R 与 Python 运行时都已随包放在 runtime\\R 与 runtime\\Python，"
+        "启动器会**相对项目文件夹**优先找到它们（不需要安装、不需要联网、不需要管理员权限）；"
+        "只有当包里没有运行时时，才会依次查找 D 盘、PATH、注册表与 C 盘，都找不到才询问是否自动下载安装。"
+        "Word 结果报告需要 Python（含 pandas 与 python-docx），随包 Python 已带。"
         "所有结果保存在 outputs\\<任务>_<标签>_<时间戳>\\，不会覆盖以往分析；每个结果目录含配置快照与运行日志。")
 
     doc.add_heading("第一部分 心理统计（SPSS 对照教学）", 1)
@@ -141,7 +152,7 @@ def main():
     doc.add_heading("第三部分 IRT（项目反应理论）", 1)
     add_md(doc, (ROOT / "docs" / "IRT工具使用说明.md").read_text(encoding="utf-8"), base_level=2)
 
-    out = ROOT / "Psychostat使用说明.docx"
+    out = ROOT / "Psychostat 分支使用说明.docx"
     save_docx(doc, out)
     strip_default_bibliography_style(out)
     print("MERGED_MANUAL_OK", out)

@@ -1,0 +1,2 @@
+"test","groups","statistic","df","p","effect","effect_value","significant"
+"Welch t","High vs Low",15.8162861549594,467.525960463724,1.92606258066644e-45,"Cohen_d",1.45172369192522,TRUE

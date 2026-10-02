@@ -1,6 +1,19 @@
 # 运行产物（每次分析生成的时间戳结果目录，含模拟数据/图表/Word报告）
 outputs/
 
+# 项目内专属依赖库：R 包与 Python 依赖默认装在这里（随项目文件夹走、免管理员权限）。
+# 这是本机可再生内容，不入库，也不应进发布包。
+.psychostat/
+
+# 项目内运行时（可选布局）：随包的 R / Python 可放在 runtime\R 与 runtime\Python，
+# 由 psychostat_env.ps1 相对项目文件夹优先查找。体积数百 MB、绑本机环境，不入库；
+# 需要随包分发时由打包脚本单独装入（见 notes\make_portable_release.ps1）。
+/runtime/
+
+# 打包时生成的合并版分支说明（三个分支说明书的合并 Word 版；源是 docs/*.md，
+# 由 scripts/merge_manuals.py 在打包时产出，不随仓库保存）
+/Psychostat 分支使用说明.docx
+
 # Python 缓存
 __pycache__/
 *.pyc

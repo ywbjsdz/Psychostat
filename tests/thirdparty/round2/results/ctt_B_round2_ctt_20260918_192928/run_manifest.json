@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-09-18T19:29:35+0800",
+  "branch": "main",
+  "r_version": "R version 4.5.2 (2025-10-31 ucrt)",
+  "os": "x86_64-w64-mingw32 / windows",
+  "packages": {
+    "psych": "2.6.5",
+    "lavaan": "0.6.21",
+    "GPArotation": "2025.3.1",
+    "ggplot2": "4.0.3",
+    "readxl": "1.4.5",
+    "haven": "2.5.5",
+    "yaml": "2.3.12",
+    "jsonlite": "2.0.0",
+    "MASS": "7.3.65"
+  },
+  "seed": null,
+  "input_mode": "file",
+  "input_path": "C:/Users/<user>/Desktop/Psychostat/examples/simulated_datasets/ctt_B_full_survey_n500_items20.csv",
+  "config_path": "C:\\Users\\<user>\\Desktop\\Psychostat\\tests\\thirdparty\\round2\\ctt_B_round2_config.yaml",
+  "methods": "cfa"
+}

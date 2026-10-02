@@ -1,0 +1,5 @@
+"task","n","items","dimensions","model","elapsed_seconds","returned_parameters","status","message"
+"G1_calibration_1D",600,15,1,"GPCM",0.67,TRUE,"ok",NA
+"G1_routeA_2D",200,16,2,"GPCM",1.45,TRUE,"ok",NA
+"G1_routeA_2D_fullN",900,16,2,"GPCM",2.34,TRUE,"ok",NA
+"G3_TAM_2PL",800,20,1,"2PL",0.0800000000000001,TRUE,"ok",""
