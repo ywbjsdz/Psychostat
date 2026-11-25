@@ -50,7 +50,7 @@
 
 ### 0.1 版本信息与更新计划
 
-当前版本：v0.2.0-preview（0.2 预览版）｜最后更新：2026-11-25。
+当前版本：v0.2｜最后更新：2026-11-25。
 
 本版新增或确认了：**第 1 步「直接选择模型」下拉（不必只靠问答向导；12 项覆盖 auto/Rasch/2PL/3PL/GRM/GPCM/MIRT·EIFA/MIRT·CIFA 与 M2PL/MGRM/MGPCM/M3PL，与向导共用同一套选择契约）**、**报告新增「估计方法与收敛诊断」一节（估计方法、迭代上限、收敛判据 TOL、是否收敛、实际迭代次数、能力量尺识别方式、MAP 先验与 mirt/psych/GPArotation 版本）**、
 **模型选择向导（3–5 问；选"多维"时会追问 EIFA/CIFA 模式与 M2PL / MGRM / MGPCM / M3PL 家族）**、
@@ -333,5 +333,5 @@ Bock, R. D., & Aitkin, M. (1981). Marginal maximum likelihood estimation of item
 
 ## 10. AI工具使用说明
 
-作者目前仅是一名大三心理系本科生，工程能力尚在成长中，因此本工具的代码实现部分借助了 Codex (OpenAI) 作为AI agent完成，底层模型为GPT 5.6-Terra，本人负责提供方向想法与结果验证。
+作者目前仅是一名大三心理系本科生，工程能力尚在成长中，因此本工具的代码实现部分借助了第三方 AI 智能体作为 AI agent 完成，本人负责提供方向想法与结果验证。
 

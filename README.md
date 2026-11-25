@@ -228,7 +228,7 @@ Psychostat/
    CONTRIBUTING.md（开发约定、PowerShell 5.1 专项坑、补 SPSS 夹具流程）/ renv.lock（参考快照）
 ```
 
-> **注意**：上面这份清单是**仓库 / 开发目录**的样子。发布压缩包（`Psychostat v0.2.0-preview.zip`）里
+> **注意**：上面这份清单是**仓库 / 开发目录**的样子。发布压缩包（`Psychostat v0.2.zip`）里
 > **只放使用者需要的 9 份文档**：《先读我（必读）》《功能速览》《完整使用说明书》《分支使用说明》
 > 《输出验证文档》《免责声明》《免安装版-测试方法》《AI智能体工作流》与 README。
 > 其余（`CHANGELOG.md`、`CONTRIBUTING.md`、`docs/` 下的源文件、SPSS 对照的独立 Word 版、

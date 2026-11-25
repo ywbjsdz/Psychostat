@@ -1,6 +1,6 @@
 # Psychostat CTT 与 IRT 第三方审查报告（第三次）
 
-- 审查员：Codex（GPT-5）
+- 审查员：第三方 AI 智能体
 - 审查模式：A 实跑；本报告对应提示词规定的“第二轮跨模型复核”范围
 - 审查日期：2026-09-18
 - 仓库：`C:/Users/<user>/Desktop/Psychostat`
@@ -72,7 +72,7 @@ r_{xx}^{emp}=\frac{\operatorname{Var}(\hat\theta)}{\operatorname{Var}(\hat\theta
 
 ```json
 {
-  "reviewer": "Codex (GPT-5)",
+  "reviewer": "third-party-ai-agent",
   "round": 2,
   "mode": "run",
   "files_read": 42,

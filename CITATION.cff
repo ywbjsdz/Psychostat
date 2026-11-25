@@ -6,7 +6,7 @@ title: Psychostat
 authors:
   - name: Psychostat contributors
 type: software
-version: 0.2.0-preview
+version: 0.2.0
 date-released: '2026-11-25'
 license: MIT
 repository-code: https://github.com/ywbjsdz/Psychostat

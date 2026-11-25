@@ -119,7 +119,7 @@ def main():
     doc = Document(); style_doc(doc)
     title = doc.add_heading("Psychostat 分支使用说明（心理统计 · CTT · IRT）", 0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    doc.add_paragraph("三个分支的详细用法｜统一入口与 outputs 输出约定｜v0.2.0-preview", style="Subtitle").alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_paragraph("三个分支的详细用法｜统一入口与 outputs 输出约定｜v0.2", style="Subtitle").alignment = WD_ALIGN_PARAGRAPH.CENTER
     doc.add_heading("这部手册是什么，和《完整使用说明书》怎么分工", 1)
     doc.add_paragraph(
         "本手册按**分支**组织：你确定自己要跑心理统计 / CTT / IRT 中的哪一条线时，直接看对应那一部分，"
