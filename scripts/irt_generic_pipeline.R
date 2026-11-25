@@ -66,7 +66,7 @@ fit_statistics <- function(fit,compute_m2=TRUE) {
   }
   base
 }
-plot_irt_curves <- function(fit,x,pars,acols,owner,fn,cfg) {
+plot_irt_curves <- function(fit,x,pars,acols,owner,fn,cfg,multidim=FALSE) {
   theta <- seq(cfg$analysis$theta_min,cfg$analysis$theta_max,length.out=cfg$analysis$theta_points)
   a <- as.matrix(pars[acols]); if(!ncol(a)) a <- matrix(1,nrow(x),1)
   dim_names <- colnames(a); if(is.null(dim_names)) dim_names <- paste0("F",seq_len(ncol(a)))
@@ -106,11 +106,59 @@ plot_irt_curves <- function(fit,x,pars,acols,owner,fn,cfg) {
   }
   tr <- do.call(rbind,traces); ii <- do.call(rbind,infos); tif <- do.call(rbind,lapply(unique(owner),function(d) { z <- aggregate(Information~Theta,ii[ii$Dimension==d,],sum); z$Dimension <- d; z }))
   write.csv(tr,fn("icc_data"),row.names=FALSE); write.csv(ii,fn("iif_data"),row.names=FALSE); write.csv(tif,fn("tif_data"),row.names=FALSE)
-  p1 <- ggplot(tr,aes(Theta,Probability,colour=Category))+geom_line(linewidth=.5)+facet_wrap(~Item,ncol=4)+theme_minimal(base_size=10)+labs(title="Item characteristic curves (conditional slices)")
-  p2 <- ggplot(ii,aes(Theta,Information,colour=Dimension))+geom_line()+facet_wrap(~Item,ncol=4)+theme_minimal(base_size=10)+labs(title="Item information functions (conditional slices)")
-  p3 <- ggplot(tif,aes(Theta,Information,colour=Dimension))+geom_line(linewidth=1)+theme_minimal(base_size=11)+labs(title="Test information functions (conditional slices)")
+  # "conditional slices" 只对**多维**成立：单维模型只有一条 θ 轴，ICC/IIF/TIF 都直接画在 θ 上，
+  # 写"条件切片"会让读者以为还有别的维度被固定住了。图标题与报告图注（Word/HTML）用同一判断。
+  slice_tag <- if(isTRUE(multidim)) " (conditional slices)" else ""
+  p1 <- ggplot(tr,aes(Theta,Probability,colour=Category))+geom_line(linewidth=.5)+facet_wrap(~Item,ncol=4)+theme_minimal(base_size=10)+labs(title=paste0("Item characteristic curves",slice_tag))
+  p2 <- ggplot(ii,aes(Theta,Information,colour=Dimension))+geom_line()+facet_wrap(~Item,ncol=4)+theme_minimal(base_size=10)+labs(title=paste0("Item information functions",slice_tag))
+  p3 <- ggplot(tif,aes(Theta,Information,colour=Dimension))+geom_line(linewidth=1)+theme_minimal(base_size=11)+labs(title=paste0("Test information functions",slice_tag))
   ggsave(fn("icc","png"),p1,width=12,height=max(6,ceiling(ncol(x)/4)*2.4),dpi=300); ggsave(fn("iif","png"),p2,width=12,height=max(6,ceiling(ncol(x)/4)*2.4),dpi=300); ggsave(fn("tif","png"),p3,width=8,height=5,dpi=300)
 }
+
+# ── 怀特图（Wright map：被试能力 × 题目难度/阈值）───────────────────────────────
+# 右侧每列一道题，点是该题的阈值（二分 1 个 b；有序多级 b1..bK）；左侧是被试 MAP 能力的
+# 横条直方图。两侧共用同一条 logit 纵轴：同一水平线意味着"该能力的被试在该阈值附近有约
+# 50% 的通过/进入更高类别的机会"，是看"量尺有没有覆盖住人、题目是否都堆在中间"最直观的一张图。
+# **只对单维模型生成**：多维 θ 无法投影到同一条 logit 轴上（多维请看按维度切片的 ICC 与
+# 维度信息函数），硬画会给出看似统一、实则混合了多个维度的位置。
+# 出图同时落两份数据表，保证图可从 CSV 复现（与 icc_data/iif_data/tif_data 同一约定）。
+plot_wright_map <- function(pars, theta_vec, fn) {
+  bcols <- grep("^b_d[0-9]*$", names(pars), value = TRUE)
+  if (!length(bcols)) return(invisible(NULL))
+  items <- do.call(rbind, lapply(seq_along(bcols), function(j) data.frame(Item = as.character(pars$Item), Threshold = j, Location = suppressWarnings(as.numeric(pars[[bcols[j]]])), stringsAsFactors = FALSE)))
+  items <- items[is.finite(items$Location), , drop = FALSE]
+  th <- suppressWarnings(as.numeric(theta_vec)); th <- th[is.finite(th)]
+  if (!nrow(items) || length(th) < 2L) return(invisible(NULL))
+  write.csv(items, fn("wright_map_data"), row.names = FALSE)
+  bin_w <- .25
+  breaks <- seq(floor(min(th)/bin_w)*bin_w, ceiling(max(th)/bin_w)*bin_w + bin_w, by = bin_w)
+  h <- graphics::hist(th, breaks = breaks, plot = FALSE)
+  persons <- data.frame(Bin_lower = h$breaks[-length(h$breaks)], Bin_upper = h$breaks[-1L], Count = h$counts)
+  persons <- persons[persons$Count > 0L, , drop = FALSE]
+  write.csv(persons, fn("wright_persons_data"), row.names = FALSE)
+  # 题目按平均位置排序：位置低的排左边，图上一眼能看出"哪几道题挤在一起、哪几道偏两端"
+  ord <- names(sort(tapply(items$Location, items$Item, mean)))
+  items$Item <- factor(items$Item, levels = ord); items$x <- as.integer(items$Item)
+  maxc <- max(persons$Count, 1L)
+  ylo <- min(c(items$Location, th)); yhi <- max(c(items$Location, th)); pad <- max(.25, .08*(yhi - ylo))
+  p <- ggplot() +
+    geom_vline(xintercept = 0, colour = "grey30", linewidth = .4) +
+    geom_hline(yintercept = 0, linetype = "dashed", colour = "grey55", linewidth = .35) +
+    geom_rect(data = persons, aes(xmin = -Count, xmax = 0, ymin = Bin_lower, ymax = Bin_upper), fill = "#2C7FB8", colour = "white", linewidth = .2) +
+    geom_point(data = items, aes(x = x, y = Location), colour = "#B2182B", size = 1.9) +
+    annotate("text", x = -maxc/2, y = yhi + pad*.6, label = "Persons (MAP theta)", size = 3.1, colour = "grey25") +
+    annotate("text", x = (1 + length(ord))/2, y = yhi + pad*.6, label = "Items (thresholds b)", size = 3.1, colour = "grey25") +
+    scale_x_continuous(breaks = seq_along(ord), labels = ord, limits = c(-maxc*1.02, length(ord) + .5), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(ylo - pad, yhi + pad*1.4), expand = c(0, 0)) +
+    theme_minimal(base_size = 10) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5, size = 7),
+          panel.grid.major.x = element_blank(), panel.grid.minor = element_blank(),
+          panel.grid.major.y = element_line(colour = "grey88", linewidth = .3)) +
+    labs(x = NULL, y = "Logit", title = "Wright map: person ability and item thresholds")
+  ggsave(fn("wright_map", "png"), p, width = 10, height = 7, dpi = 300)
+  invisible(p)
+}
+
 extract_cifa_significance <- function(fit,dims) {
   estimated <- tryCatch(coef(fit,printSE=TRUE,rawug=TRUE,simplify=FALSE,verbose=FALSE),error=function(e) NULL)
   if(is.null(estimated)) return(data.frame(Item=character(),Dimension=character(),Loading=double(),SE=double(),z=double(),p=double(),stringsAsFactors=FALSE))
@@ -305,11 +353,13 @@ if(is_mirt && mirt_mode=="cifa") {
   write.csv(loading_matrix,fn("cifa_loading_matrix"),row.names=FALSE)
   write.csv(extract_cifa_significance(chosen$fit,dims),fn("cifa_loading_significance"),row.names=FALSE)
 }
-tryCatch(plot_irt_curves(chosen$fit,x,pars,acols,owner,fn,cfg),error=function(e) say("Curve generation skipped: %s",conditionMessage(e)))
+tryCatch(plot_irt_curves(chosen$fit,x,pars,acols,owner,fn,cfg,length(acols)>1L),error=function(e) say("Curve generation skipped: %s",conditionMessage(e)))
 item_fit <- tryCatch(as.data.frame(itemfit(chosen$fit,method="S_X2",na.rm=TRUE)),error=function(e) NULL); if(!is.null(item_fit)) { item_fit$item <- cifa_to_orig_item(item_fit$item); item_fit$Item <- item_fit$item; pc <- grep("^p\\.S_X2$",names(item_fit),value=TRUE); if(!length(pc)) stopf("S-X2 item fit table has no p.S_X2 column (columns: %s); cannot run BH correction.",paste(names(item_fit),collapse=", ")); item_fit$BH_p <- p.adjust(item_fit[[pc]],"BH"); write.csv(item_fit,fn("item_fit"),row.names=FALSE) }
 fs_mat <- fscores(chosen$fit,method="MAP",full.scores=TRUE,full.scores.SE=TRUE); theta <- as.data.frame(fs_mat); if(!is.null(cfg$input$id_column) && cfg$input$id_column %in% names(raw)) theta <- cbind(setNames(data.frame(analysis_id),cfg$input$id_column),theta); write.csv(theta,fn("ability_estimates"),row.names=FALSE)
 tcols <- grep("^F[0-9]+$|^Theta",names(theta),value=TRUE); if(!length(tcols)) tcols <- names(theta)[vapply(theta,is.numeric,logical(1))][seq_len(min(chosen$dimension,sum(vapply(theta,is.numeric,logical(1)))))]
 theta_summary <- data.frame(Dimension=tcols,N_valid=vapply(theta[tcols],function(z) sum(!is.na(z)),integer(1)),Mean=sapply(theta[tcols],mean,na.rm=TRUE),SD=sapply(theta[tcols],sd,na.rm=TRUE),Min=sapply(theta[tcols],min,na.rm=TRUE),Max=sapply(theta[tcols],max,na.rm=TRUE)); write.csv(theta_summary,fn("ability_summary"),row.names=FALSE)
+# 怀特图放在能力估计之后：它要拿 MAP θ 与被试侧分布，只有单维模型才落盘（多维跳过并留痕）
+if(length(acols)<=1L) tryCatch(plot_wright_map(pars,theta[[tcols[1L]]],fn),error=function(e) say("Wright map skipped: %s",conditionMessage(e)))
 # 边际/经验信度：marginal_rxx 基于模型隐含分布，仅适用于单维模型（多维会报错，按 NA 处理）；
 # empirical_rxx 直接接收 fscores(full.scores.SE=TRUE) 的完整矩阵（按列名拆分 F 与 SE_ 列），逐维度给出经验信度。
 align_rel <- function(v,n) if(length(v)==n) suppressWarnings(as.numeric(v)) else if(length(v)==1L && !is.na(suppressWarnings(as.numeric(v)))) rep(suppressWarnings(as.numeric(v)),n) else rep(NA_real_,n)
@@ -327,7 +377,7 @@ sprintf("参数估计方法为 %s；迭代上限 %s 次，收敛判据为相邻�
 sprintf("能力量尺由模型识别方式决定：单组模型的潜变量均值固定为 0；潜变量方差在题目斜率自由估计时固定为 1，斜率被约束时（如 Rasch/1PL）改由模型估计（本次 %s）。项目参数与能力估计均与该量尺一致。", diag_get("latent_variances")),
 "能力估计采用 MAP（最大后验），先验为模型隐含的潜变量分布（Gaussian）；因此 MAP 相当于向 0 收缩，极端能力会被低估，解读极端组时应结合标准误（SE）。",
 sprintf("关键包版本：mirt %s、psych %s、GPArotation %s；%s。", diag_get("mirt_version"), diag_get("psych_version"), diag_get("GPArotation_version"), diag_get("r_version")),
-mdtable(diag_show),"","### 信度估计","边际信度（marginal_rxx）基于模型隐含的误差分布，仅适用于单维模型；经验信度（empirical_rxx）基于 MAP 能力估计值及其标准误逐维度计算；NA 表示该指标在当前模型/估计方式下不可用。",mdtable(reliability),"","### 项目参数",mdtable(pars),"","### 能力估计",mdtable(theta_summary),"","## 讨论与限制","模型选择不替代理论结构、计分方向、局部独立性和 DIF 检验。能力估计采用 MAP（最大后验）方法，存在向均值收缩（回归均值）的倾向，极端能力会被低估；解读极端组时应结合标准误（SE）。图形与表格均见同目录输出文件。")
+mdtable(diag_show),"","### 信度估计","边际信度（marginal_rxx）基于模型隐含的误差分布，仅适用于单维模型；经验信度（empirical_rxx）基于 MAP 能力估计值及其标准误逐维度计算；NA 表示该指标在当前模型/估计方式下不可用。",mdtable(reliability),"","### 项目参数",ITEM_PARAM_NOTE_ZH,"",mdtable(item_parameters_display(pars)),"","### 能力估计",mdtable(theta_summary),"","## 讨论与限制","模型选择不替代理论结构、计分方向、局部独立性和 DIF 检验。能力估计采用 MAP（最大后验）方法，存在向均值收缩（回归均值）的倾向，极端能力会被低估；解读极端组时应结合标准误（SE）。图形与表格均见同目录输出文件（单维模型另有怀特图 wright_map.png：左被试右题目，共用 logit 轴）。")
 en <- c("# Automated IRT Analysis Report","",sprintf("## %s",model_mode_label),sprintf("The original data contained %d respondents and %d items; %d respondents entered estimation. Missing-data strategy `%s`: %s",n_before,ncol(x),n_after,cfg$input$missing,missing_note),"","## Data and missingness",mdtable(missing_summary),"","## Results",mdtable(comparison),"","## Estimation method and convergence",
 sprintf("Item parameters were estimated with %s; the iteration cap was %s and the convergence criterion is a relative change in the log-likelihood below %s (mirt's TOL). The fit used %s iterations and %s.",
         diag_get("estimator"), diag_get("max_iterations"), diag_get("em_tolerance"), diag_get("actual_iterations"),
@@ -335,7 +385,7 @@ sprintf("Item parameters were estimated with %s; the iteration cap was %s and th
 sprintf("The latent scale follows the identification rule: for a single-group model the latent mean is fixed at 0, and the latent variance is fixed at 1 when all slopes are free or estimated when slopes are constrained (e.g. Rasch/1PL) - observed here as %s. Item parameters and ability estimates are on that same scale.", diag_get("latent_variances")),
 "Ability is scored by MAP (maximum a posteriori) under the model-implied latent density (Gaussian); MAP therefore shrinks estimates toward 0, so extreme abilities are underestimated and should be read together with their standard errors (SE).",
 sprintf("Key package versions: mirt %s, psych %s, GPArotation %s; %s.", diag_get("mirt_version"), diag_get("psych_version"), diag_get("GPArotation_version"), diag_get("r_version")),
-mdtable(diag_show),"","### Reliability","Marginal reliability (marginal_rxx) is derived from the model-implied error distribution and is defined for unidimensional models only; empirical reliability (empirical_rxx) is computed per dimension from the MAP ability estimates and their standard errors; NA indicates the value is unavailable for the selected model or scoring method.",mdtable(reliability),"","### Item parameters",mdtable(pars),"","### Ability estimates",mdtable(theta_summary),"","## Discussion and limitations","Model selection does not replace construct theory, scoring-direction checks, local-dependence diagnostics, or DIF analyses. MAP ability estimates shrink toward the mean, so extreme abilities are underestimated; interpret extreme groups alongside their standard errors. Figures and tables are stored in this result directory.")
+mdtable(diag_show),"","### Reliability","Marginal reliability (marginal_rxx) is derived from the model-implied error distribution and is defined for unidimensional models only; empirical reliability (empirical_rxx) is computed per dimension from the MAP ability estimates and their standard errors; NA indicates the value is unavailable for the selected model or scoring method.",mdtable(reliability),"","### Item parameters",ITEM_PARAM_NOTE_EN,"",mdtable(item_parameters_display(pars)),"","### Ability estimates",mdtable(theta_summary),"","## Discussion and limitations","Model selection does not replace construct theory, scoring-direction checks, local-dependence diagnostics, or DIF analyses. MAP ability estimates shrink toward the mean, so extreme abilities are underestimated; interpret extreme groups alongside their standard errors. Figures and tables are stored in this result directory (unidimensional models also report a Wright map, wright_map.png: persons on the left, item thresholds on the right, one shared logit axis).")
 langs <- cfg$output$report_languages %||% c("zh","en"); if("zh"%in%langs) writeLines(zh,fn("report_zh","md")); if("en"%in%langs) writeLines(en,fn("report_en","md")); snapshot_ext <- if(config_ext=="json") "json" else "yaml"; file.copy(config_path,fn("config_snapshot",snapshot_ext),overwrite=TRUE); if(isTRUE(cfg$output$save_model_object %||% TRUE)) saveRDS(chosen$fit,fn("selected_model","rds"))
 write_run_manifest(out, cfg, c("mirt", "psych", "GPArotation", "readxl", "haven", "yaml", "jsonlite"), model_mode_label, config_path,
   extra = list(model = chosen_name, mirt_mode = if (is_mirt) mirt_mode else "not_applicable",

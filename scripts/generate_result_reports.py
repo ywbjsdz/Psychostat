@@ -108,6 +108,53 @@ def read_optional(result, prefix, suffix):
     return pd.read_csv(path) if path.exists() else None
 
 
+def irt_display_params(params):
+    """Report-layer view of the item-parameter table, using standard IRT letters.
+
+    mirt names the raw columns a1 / d / g / u / b_d*, so a reader looking for the
+    discrimination "a" or the guessing "c" cannot find them. In the report:
+      a = discrimination (multidimensional models keep a1..aD plus MDISC)
+      b = difficulty/threshold (b_d -> b, b_d1..b_dK -> b1..bK)
+      c = guessing (mirt's g; fixed at 0 for 1PL/2PL, free only in 3PL)
+
+    Only the presentation changes: *_item_parameters.csv keeps the raw column
+    names, because tests/smoke_test.ps1 and tests/verify_l*.R assert closed-form
+    identities on them (MDISC = sqrt(sum a^2), b = -d/MDISC). The mapping must
+    stay identical to item_parameters_display() in scripts/irt_common.R.
+    """
+    columns = [str(column) for column in params.columns]
+    a_columns = [column for column in columns if column.startswith("a") and column[1:].isdigit()]
+    b_columns = [column for column in columns if column.startswith("b_d") and (column[3:] == "" or column[3:].isdigit())]
+    out = pd.DataFrame()
+    out["Item"] = params["Item"]
+    if not a_columns:
+        out["a"] = pd.Series([None] * len(params))
+    elif len(a_columns) == 1:
+        out["a"] = params[a_columns[0]]
+    else:
+        for column in a_columns:
+            out[column] = params[column]
+    for column in b_columns:
+        out["b" + column[3:]] = params[column]
+    if "g" in columns:
+        out["c"] = params["g"]
+    if len(a_columns) > 1:
+        for column in ("MDISC", "Primary_dimension"):
+            if column in columns:
+                out[column] = params[column]
+    return out
+
+
+def irt_multidimensional(params):
+    """单维还是多维？看参数表里 a 列的个数（a1..aD 多于一个即为多维）。
+
+    用途：图注里"（MIRT 为条件切片）"只对多维成立——单维模型只有一条 θ 轴，
+    ICC/IIF/TIF 都直接画在 θ 上，写"条件切片"会让读者以为还有维度被固定住了。
+    """
+    columns = [str(column) for column in params.columns]
+    return sum(1 for column in columns if column.startswith("a") and column[1:].isdigit()) > 1
+
+
 def build(result, zh):
     matches = list(result.glob("*_model_comparison.csv"))
     if len(matches) != 1:
@@ -118,6 +165,7 @@ def build(result, zh):
     models = read_required(result, prefix, "model_comparison")
     overview = read_required(result, prefix, "item_overview")
     params = read_required(result, prefix, "item_parameters")
+    multidim = irt_multidimensional(params)
     theta = read_required(result, prefix, "ability_summary")
     missing = read_optional(result, prefix, "missingness_summary")
     item_fit = read_optional(result, prefix, "item_fit")
@@ -154,7 +202,12 @@ def build(result, zh):
         models_title = "候选模型比较与整体拟合"
         models_note = "AIC、BIC 与 SABIC 越低表示相对拟合越好。"
         params_title = "项目参数"
-        params_note = "阈值参数位于模型潜变量量尺上。"
+        params_note = (
+            "a 为区分度；b 为难度/阈值（多级模型为 b1…bK，即各类别阈值）；"
+            "c 为猜测参数（1PL/2PL 由模型固定为 0，只有 3PL 自由估计）。"
+            "多维模型的 a1…aD 是各维斜率，MDISC = √Σa² 为综合区分度。"
+            "mirt 的内部截距 d 与上限渐近线 u 不在本表显示，完整原始参数见 *_item_parameters.csv。"
+        )
         fit_title = "项目拟合诊断"
         fit_note = "BH 校正后的 p 值用于提示后续核查，而非自动删除项目。"
         theta_title = "能力估计描述统计"
@@ -172,12 +225,15 @@ def build(result, zh):
             "能力估计采用 MAP（最大后验）方法，存在向均值收缩（回归均值）的倾向，极端能力会被低估；解读极端组时应结合标准误（SE）。"
             "表格采用 结果报告风格三线表，图形以 300 dpi PNG 保存。"
         )
+        # 「条件切片」只对多维成立；单维模型的 θ 轴就是唯一的那条轴。
+        slice_note = "（多维 MIRT：按其他维度取条件切片）" if multidim else ""
         captions = [
             "图 1. 项目反应分布。",
-            "图 2. 项目特征曲线（MIRT 为条件切片）。",
-            "图 3. 项目信息函数（MIRT 为条件切片）。",
-            "图 4. 测验信息函数（MIRT 为条件切片）。",
+            f"图 2. 项目特征曲线{slice_note}。",
+            f"图 3. 项目信息函数{slice_note}。",
+            f"图 4. 测验信息函数{slice_note}。",
             "图 5. MAP 能力估计分布。",
+            "图 6. 怀特图：被试 MAP 能力（左侧横条）与题目难度/阈值（右侧点），共用同一条 logit 纵轴。",
         ]
     else:
         title = "Generic Automated IRT Analysis Report"
@@ -200,7 +256,12 @@ def build(result, zh):
         models_title = "Candidate-model comparison and global fit"
         models_note = "Lower AIC, BIC, and SABIC indicate better relative fit."
         params_title = "Item parameters"
-        params_note = "Threshold parameters are on the fitted latent metric."
+        params_note = (
+            "a = discrimination; b = difficulty/threshold (b1 to bK for polytomous models); "
+            "c = guessing (fixed at 0 for 1PL/2PL and freely estimated only in 3PL). "
+            "For multidimensional models a1 to aD are the per-dimension slopes and MDISC = sqrt(Σa²) is the composite discrimination. "
+            "The mirt-internal intercept d and the upper asymptote u are omitted here; see *_item_parameters.csv for the raw parameters."
+        )
         fit_title = "Item-fit diagnostics"
         fit_note = "BH-adjusted p values flag items for follow-up, not automatic deletion."
         theta_title = "Ability-estimate descriptives"
@@ -219,13 +280,25 @@ def build(result, zh):
             "MAP ability estimates shrink toward the mean, so extreme abilities are underestimated; interpret extreme groups alongside their standard errors. "
             "Tables use an results-style three-line layout and figures are saved as 300 dpi PNG files."
         )
+        slice_note = " (conditional slices across dimensions)" if multidim else ""
         captions = [
             "Figure 1. Item-response distributions.",
-            "Figure 2. Item characteristic curves (conditional slices for MIRT).",
-            "Figure 3. Item information functions (conditional slices for MIRT).",
-            "Figure 4. Test information functions (conditional slices for MIRT).",
+            f"Figure 2. Item characteristic curves{slice_note}.",
+            f"Figure 3. Item information functions{slice_note}.",
+            f"Figure 4. Test information functions{slice_note}.",
             "Figure 5. Distribution of MAP ability estimates.",
+            "Figure 6. Wright map: MAP person ability (left bars) and item difficulty/thresholds (right dots) on one shared logit axis.",
         ]
+
+    if multidim:
+        # 多维不画怀特图：θ 是多维的，题目阈值无法投影到同一条 logit 轴上。
+        # 与其给一张混合了多个维度的"看似统一"的图，不如在正文说清楚并指向条件切片的 ICC。
+        discussion += (" 本报告为多维模型，未生成怀特图：多维能力无法投影到同一条 logit 轴上，"
+                       "请按维度查看条件切片的项目特征曲线与维度信息函数。"
+                       if zh else
+                       " No Wright map is reported for the multidimensional model: a multidimensional "
+                       "ability cannot be projected onto a single logit axis; read the conditional-slice "
+                       "item characteristic curves and dimension-specific information functions instead.")
 
     heading = document.add_paragraph()
     heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -247,7 +320,7 @@ def build(result, zh):
     if reliability is not None:
         add_table(document, reliability, table_number, reliability_title, reliability_note)
         table_number += 1
-    add_table(document, params, table_number, params_title, params_note)
+    add_table(document, irt_display_params(params), table_number, params_title, params_note)
     table_number += 1
     if eifa_comparison is not None:
         add_table(document, eifa_comparison, table_number, "探索性维度比较（EIFA）" if zh else "Exploratory dimensionality comparison (EIFA)", "按 BIC 排序；较低值表示更优的相对拟合。" if zh else "Ranked by BIC; lower values indicate better relative fit.")
@@ -276,7 +349,7 @@ def build(result, zh):
         add_table(document, correlations, table_number, corr_title, corr_note)
 
     for suffix, caption in zip(
-        ["response_distributions", "icc", "iif", "tif", "theta_distribution"], captions
+        ["response_distributions", "icc", "iif", "tif", "theta_distribution", "wright_map"], captions
     ):
         figure(document, result / f"{prefix}_{suffix}.png", caption)
 

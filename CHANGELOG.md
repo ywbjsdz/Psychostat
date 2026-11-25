@@ -3,6 +3,103 @@
 本项目的所有显著变更都记录在此文件中。
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.0-preview] - 2026-11-25
+
+> **0.2 预览版**。相对 v0.1.1 的四处用户可见改动：**IRT 迭代上限默认 500 → 5000**（3PL 在原上限下
+> 基本跑不完）、**报告题目参数表改用 IRT 习惯字母 a / b / c**（区分度 / 难度 / 猜测）、
+> **「条件切片」图注只留给多维 MIRT**、**新增单维怀特图（Wright map）**。
+> 发行包为源码包（不含 `notes/`、`outputs/`、`.psychostat/`、`runtime/` 与本机运行时）；
+> 需要免安装版（随包 R/Python）请用 `notes\make_portable_release.ps1` 自行生成。
+
+### 变更：IRT 迭代上限默认 500 → 5000
+
+**现象**：用 3PL 拟合二分数据时报告"未收敛"，读者无法判断是模型设定问题还是迭代次数不够。
+
+**实测（IRT-H：1500 人 × 20 题，二分 3PL；R 4.5.2 / mirt 1.46.1）**：上限提到 5000 后，
+本次拟合**实际迭代 2596 次才收敛**（`converged = TRUE`、`hit_iteration_cap = FALSE`、
+logLik = −16601.348、BIC = 33641.489，最终选中 3PL）。旧默认的 500 次对 3PL 的猜测参数
+c 根本不够——所以"3PL 没跑出来"不是模型写错，而是上限太小。
+
+**改动（只改默认值与模板，不动任何估计逻辑）**
+1. `scripts/irt_common.R`：`analysis.max_iterations` 的缺省回退值 500 → 5000。
+2. `config.yaml`、`run_irt_analysis.ps1`（交互/快捷命令生成的配置）、`scripts/psychostat_gui.ps1`
+   （GUI 生成的配置）同步 500 → 5000。
+3. 示例与测试配置统一为 5000：`examples/empirical_data_template.yaml`、`examples/silent_config_example.json`、
+   `examples/{rasch,2pl,3pl,grm,mirt}_simulation.yaml`（原 200）、
+   `examples/silent_mirt_2pl_cifa_simulation.json`（原 300）、`tests/e2e_gpcm.json`、`tests/e2e_cifa_mgrm.json`。
+4. `docs/IRT工具使用说明.md`：6.1 与「常见问题」写明默认上限 5000，并说明 3PL 需要更多迭代。
+
+**兼容性**：上限只是"最多迭代几次"，**已收敛结果的数值不受影响**（收敛判据 mirt TOL 未改）；
+报告与 `estimation_diagnostics.csv` 一直记录 `max_iterations` / `actual_iterations` / `converged` /
+`hit_iteration_cap`，新旧结果可直接区分；显式写了 `max_iterations` 的旧配置仍按自己的值走。
+代价是真正病态、永不收敛的模型会多跑一段时间才停（这本来就是上限的含义）。
+
+### 改进：报告题目参数表用 a / b / c（区分度 / 难度 / 猜测）
+
+**问题**：报告表格直接沿用 mirt 的列名 `a1 / d / g / u / MDISC / b_d…`，于是
+① 读者找不到标准记号"a 区分度"（1PL/2PL/3PL 里叫 `a1`）；② 3PL 的猜测参数输出成 `g`，
+看起来像"没输出 c"；③ `u` 恒为 1、`Item` 被挤到第五列。
+
+**改动（只改呈现层，不动 CSV 与任何数值）**
+1. 报告表格统一为 **a = 区分度、b = 难度/阈值（b1…bK）、c = 猜测**，`Item` 移到第一列。
+2. 三处同形实现：`scripts/irt_common.R` 的 `item_parameters_display()`（生成中英文 Markdown 报告）、
+   `scripts/generate_result_reports.py` 与 `scripts/generate_html_report.py` 的 `irt_display_params()`
+   （Word / HTML）。
+3. 去冗余：单维模型不显示 `MDISC`（= |a|）与 `Primary_dimension`（恒为 F1）；多维模型保留
+   `a1…aD`、`MDISC`、`Primary_dimension`。mirt 内部截距 `d` 与上限渐近线 `u` 不进报告表格。
+4. **`*_item_parameters.csv` 列名保持不变**：`tests/smoke_test.ps1` 与 `tests/verify_l1_irt.R` /
+   `verify_l3_irt_ltm.R` 直接按 `a1`、`MDISC`、`b_d` 做闭式断言（MDISC = √Σa²、b = −d/MDISC），
+   改 CSV 列名会让整套数值校验失效。报告表注已写明"完整原始参数见 `*_item_parameters.csv`"。
+5. 1PL/2PL 也显示 c（= 0）：mirt 对二分模型恒定返回 `g`/`u` 两列，1PL/2PL 的 `g` 由模型固定为 0，
+   保留该列正好说明"本模型不估计猜测"，而不是缺失或没输出。
+
+### 验证（Windows PowerShell 5.1 / R 4.5.2 / mirt 1.46.1）
+
+1. 3PL（IRT-H，1500×20）：上限 5000 下 2596 次收敛；报告参数表为 `Item | a | b | c`，
+   c 逐题有值（Item01 c = .573、Item02 c = .162、Item03 c = .010 …）。
+2. 2PL（IRT-A，800×20，auto 选模）：`Item | a | b | c`，c 全为 0。
+3. GPCM（`tests/e2e_gpcm.json`）：`Item | a | b1 | b2 | b3 | b4`，无 c 列（多级模型不估猜测）。
+4. 二维 CIFA-GRM（`tests/e2e_cifa_mgrm.json`）：`Item | a1 | a2 | b1…b4 | MDISC | Primary_dimension`。
+5. 中英文 Word 与 HTML 报告均实际生成后核对表头（`Item | a | b | c`），表注含 a/b/c 释义。
+6. `.\tests\smoke_test.ps1 -Full`：93 条数值回归断言与全部端到端检查通过；唯一失败项是"文件编码约定"
+   检查在本机遍历 `notes\pyruntime\` 时被系统拒绝读取（该目录在改动前就对受限令牌不可读，与本次改动无关）。
+   改动到的 `.ps1` 已复核为"恰好一个 BOM"，`.R/.py/.json/.yaml/.md` 无 BOM，json/yaml 保持 LF。
+
+### 改进：图注只在多维 MIRT 才写「条件切片」，并新增怀特图
+
+**问题 1（图注不实）**：ICC/IIF/TIF 的 PNG 标题与报告图注对所有模型都写"（MIRT 为条件切片）"。
+单维模型（Rasch/1PL、2PL、3PL、单维 GRM/GPCM）只有一条 θ 轴，曲线本来就画在 θ 上；
+写"条件切片"会让读者以为还有别的维度被固定住了。
+
+**问题 2（缺图）**：IRT 没有怀特图（Wright map）。"题目有没有覆盖住被试的能力范围、
+题目是不是都挤在中间"只能靠 θ 分布图与 ICC 自己拼。
+
+**改动**
+1. `scripts/irt_generic_pipeline.R`：`plot_irt_curves()` 增加 `multidim` 参数，PNG 标题里的
+   `(conditional slices)` 只在多维时拼接；新增 `plot_wright_map()`——左侧被试 MAP 能力横条直方图、
+   右侧各题阈值，共用同一条 logit 纵轴，题目按平均位置排序；同时落 `wright_map_data.csv`
+   （题目 / 阈值序号 / 位置）与 `wright_persons_data.csv`（直方图分箱），图可由 CSV 复现。
+2. 怀特图**只对单维模型生成**：多维 θ 无法投影到同一条 logit 轴上，强行画会混合多个维度。
+   多维报告在讨论里明确说明"未生成怀特图"并指向条件切片的 ICC 与维度信息函数。
+3. `scripts/generate_result_reports.py` / `scripts/generate_html_report.py`：图注按维度条件化
+   （单维"图 2. 项目特征曲线。"；多维"图 2. 项目特征曲线（多维 MIRT：按其他维度取条件切片）。"），
+   并把怀特图作为"图 6"排进中英文 Word 与 HTML 报告（文件不存在时自动跳过，不留空图注）。
+4. 文档同步并重新生成 Word：《Psychostat完整使用说明书.docx》（源 `docs/Psychostat_完整使用说明书.md`）、
+   《Psychostat 分支使用说明.docx》（`scripts/merge_manuals.py`）、
+   《Psychostat 功能速览（简短说明书）.docx》（`scripts/make_quickstart_docx.py`）；
+   `docs/IRT工具使用说明.md` 的输出清单与 6.2.5「图形如何使用」补了怀特图的读法，README 的图清单同步。
+
+**怎么读怀特图**（已写进说明书）：同一水平线 ≈ 该能力的被试在该阈值处有约 50% 的通过/进入更高类别的机会；
+随机样本的被试分布应大致盖住题目范围；大片被试落在最难题之外，说明该段量尺上没有题可用，
+能力估计会被明显压向均值。
+
+**验证**
+- 单维 2PL（n = 40、10 题）：生成 `wright_map.png` 与两份数据表；中文 Word 共 6 张图，
+  图注**不含**"条件切片"；HTML 报告里"条件切片"出现 0 次，怀特图为"图 6"。
+- 单维 GRM（150 × 10，5 级计分）：同一题的 4 个阈值在图中竖排显示，可读。
+- 二维 CIFA-MGRM：不生成怀特图；Word 共 5 张图，ICC/IIF/TIF 图注为
+  "（多维 MIRT：按其他维度取条件切片）"，讨论段写明未生成怀特图的原因。
+
 ## [0.1.1] - 2026-10-02
 
 > 第二版。相对 v0.1.0 的四项改进：**发行包改为单一文件夹**（运行时收进项目内，解压到任意位置都能跑）、

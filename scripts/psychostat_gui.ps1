@@ -551,7 +551,7 @@ function New-IrtConfig {
         analysis = [ordered]@{
             model = $Model; compare_models = @($Model); dimension_count = 'auto'; dimension_range = 'auto'
             mirt_mode = $MirtMode; mirt_item_model = $MirtItemModel; loading_matrix = $(if ($LoadingMatrix) { $LoadingMatrix } else { $null })
-            max_auto_dimensions = 6; estimator = 'EM'; max_iterations = 500; theta_min = -3; theta_max = 3; theta_points = 121
+            max_auto_dimensions = 6; estimator = 'EM'; max_iterations = 5000; theta_min = -3; theta_max = 3; theta_points = 121
             selection_criterion = 'BIC'; allow_3pl = $false; compute_m2 = $true
         }
         output   = [ordered]@{ directory = (Join-Path $root 'outputs'); project_label = 'gui_irt'; report_languages = @('zh','en'); save_model_object = $true }

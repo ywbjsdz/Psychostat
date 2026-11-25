@@ -54,7 +54,7 @@ normalise_config <- function(cfg,base_dir) {
   if(!(cfg$analysis$mirt_item_model %in% c("auto","grm","gpcm","2pl","3pl"))) stopf("analysis.mirt_item_model must be auto, grm, gpcm, 2pl, or 3pl.")
   cfg$analysis$dimension_range <- as.character(cfg$analysis$dimension_range %||% "auto")
   if(!is.null(cfg$analysis$loading_matrix)) cfg$analysis$loading_matrix <- resolve_path(config_string_or(cfg$analysis$loading_matrix,"analysis.loading_matrix","",allow_empty=TRUE),base_dir)
-  cfg$analysis$max_iterations <- as.integer(cfg$analysis$max_iterations %||% 500)
+  cfg$analysis$max_iterations <- as.integer(cfg$analysis$max_iterations %||% 5000)
   cfg$analysis$theta_min <- cfg$analysis$theta_min %||% -3; cfg$analysis$theta_max <- cfg$analysis$theta_max %||% 3; cfg$analysis$theta_points <- as.integer(cfg$analysis$theta_points %||% 121)
   cfg$output$project_label <- gsub("[^A-Za-z0-9_-]","_",config_string_or(cfg$output$project_label,"output.project_label","irt_analysis"))
   cfg$output$directory <- resolve_path(config_string_or(cfg$output$directory,"output.directory","outputs"),base_dir)
@@ -190,6 +190,46 @@ prepare_items <- function(data,item_columns,id_column=NULL) {
   invalid <- names(x)[!vapply(x,function(z) all(is.na(z)|abs(z-round(z))<1e-8),logical(1))]; if(length(invalid)) stopf("Items must be integer-scored: %s",paste(invalid,collapse=", "))
   if(ncol(x)<3) stopf("At least three items are required."); list(x=x,items=items)
 }
+
+# ── 报告呈现层：题目参数表用 IRT 习惯字母 a / b / c ──────────────────────────────
+# mirt 的原始列名是 a1、d、g、u、b_d…；直接把这些名字打进报告，读者找不到 "a"（区分度）
+# 和 "c"（猜测），也看不出 3PL 到底有没有输出猜测参数。报告里统一为：
+#   a = 区分度（多维保留 a1..aD 各维斜率 + MDISC 综合区分度）
+#   b = 难度/阈值（b_d → b；b_d1..b_dK → b1..bK）
+#   c = 猜测（mirt 的 g；1PL/2PL 由模型固定为 0，仅 3PL 自由估计）
+# **只改呈现层**：*_item_parameters.csv 的列名保持不变——tests/smoke_test.ps1 与
+# tests/verify_l1_irt.R / verify_l3_irt_ltm.R 直接按 a1、MDISC、b_d 做闭式断言
+# （MDISC = sqrt(Σa²)、b = -d/MDISC），改 CSV 列名会让整套数值校验失效。
+# 口径必须与 scripts/generate_result_reports.py 的 irt_display_params() 一致
+# （中英文 Word 与 HTML 报告都从 CSV 生成，两边映射必须同形）。
+item_parameters_display <- function(pars) {
+  nm <- names(pars)
+  acols <- grep("^a[0-9]+$", nm, value = TRUE)
+  bcols <- grep("^b_d[0-9]*$", nm, value = TRUE)
+  out <- data.frame(Item = as.character(pars$Item), stringsAsFactors = FALSE)
+  if (!length(acols)) out[["a"]] <- NA_real_
+  else if (length(acols) == 1L) out[["a"]] <- pars[[acols]]
+  else for (cl in acols) out[[cl]] <- pars[[cl]]                      # 多维：a1..aD 各维斜率
+  for (cl in bcols) out[[sub("^b_d", "b", cl)]] <- pars[[cl]]         # b_d -> b；b_d1 -> b1
+  if ("g" %in% nm) out[["c"]] <- pars[["g"]]                          # 3PL 猜测；1PL/2PL 恒为 0
+  if (length(acols) > 1L) {                                           # 单维时 MDISC = |a|、维度恒 F1，去冗余
+    if ("MDISC" %in% nm) out[["MDISC"]] <- pars[["MDISC"]]
+    if ("Primary_dimension" %in% nm) out[["Primary_dimension"]] <- pars[["Primary_dimension"]]
+  }
+  out
+}
+
+# 报告里题目参数表的表注（中英文各一份；Python 报告生成器用同义措辞镜像）
+ITEM_PARAM_NOTE_ZH <- paste0(
+  "a 为区分度；b 为难度/阈值（多级模型为 b1…bK，即各类别阈值）；",
+  "c 为猜测参数（1PL/2PL 由模型固定为 0，只有 3PL 自由估计）。",
+  "多维模型的 a1…aD 是各维斜率，MDISC = √Σa² 为综合区分度。",
+  "mirt 的内部截距 d 与上限渐近线 u 不在本表显示，完整原始参数见 *_item_parameters.csv。")
+ITEM_PARAM_NOTE_EN <- paste0(
+  "a = discrimination; b = difficulty/threshold (b1 to bK for polytomous models); ",
+  "c = guessing (fixed at 0 for 1PL/2PL and freely estimated only in 3PL). ",
+  "For multidimensional models a1 to aD are the per-dimension slopes and MDISC = sqrt(sum of a^2) is the composite discrimination. ",
+  "The mirt-internal intercept d and the upper asymptote u are omitted here; see *_item_parameters.csv for the raw parameters.")
 
 simulate_irt_data <- function(settings) {
   set.seed(as.integer(settings$seed %||% 20260815)); model <- tolower(settings$model %||% "grm"); n <- as.integer(settings$n_persons %||% 300); k <- as.integer(settings$n_items %||% 20)

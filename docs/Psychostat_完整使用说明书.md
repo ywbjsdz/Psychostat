@@ -1,7 +1,7 @@
 # Psychostat 完整使用说明书
 
 > **适用对象**：刚学完/正在学心理统计的本科生与研究生（上篇：怎么用、每个方法是什么意思），以及需要做量表编制与研究分析的研究者（中篇：CTT/IRT 的模型与参数、可复现性与论文写作）。
-> **文档版本**：2026-09-17（v0.1.0，公开预览版）。若你改了代码，请同步更新本文档末尾"已知限制"一节，并重跑 `scripts/generate_docs.py` 与 `scripts/merge_manuals.py` 重新生成本文档的 Word 版。
+> **文档版本**：2026-11-25（v0.2.0-preview，0.2 预览版）。若你改了代码，请同步更新本文档末尾"已知限制"一节，并重跑 `scripts/generate_docs.py` 与 `scripts/merge_manuals.py` 重新生成本文档的 Word 版。
 > **一句话定位**：Psychostat 是一个**心理学统计与测量教学工具**——把 SPSS 式的经典统计、CTT 量表编制流程、IRT 项目反应理论封装成"下载即用"的 Windows 工具，自动产出结果表、图、教学报告与 Word 结果报告。**它不是临床或高风险决策工具**。
 
 ---
@@ -529,7 +529,8 @@ Psychostat 在你的电脑上只补充安装两类东西：**R 本体**（若你
   > **多维数据的细节**：模拟数据生成时阈值是按主维度载荷放置的（$d = -b \times a_{primary}$），而输出按 MDISC 折算，因此**多维情形下恢复出的 b 与生成真值会有约 5% 的小差异**（实测 Item1 前三个阈值：真值 −0.659/−0.472/0.545，恢复 −0.692/−0.486/0.575）。这不是 bug，是"多维合计区分度"与"主维度区分度"两种口径的差别，写论文时应说明用的是哪一种。
 - **多级题目的 b₁…b_{K−1}**：相邻类别之间的"台阶"位置，应**单调递增**（工具输出的 b 列按升序排列）。
 - **能力 θ**：工具用 **MAP（最大后验）** 估计，同时给出每人的 SE。实测 1D GRM（15 题，n = 1000）θ 恢复 **r = .934、回归斜率 0.863、平均 SE = 0.342**——斜率略小于 1 是 MAP 的先验收缩（shrinkage）造成的正常现象。若追求无收缩的点估计，可用 EAP（mirt 默认）；想要与 CTT 总分相关性更高的可用 WLE。
-- **ICC / IIF / TIF**：题目特征曲线、题目信息函数（$I(\theta)=\sum_k \frac{(P_k')^2}{P_k}$）、测验信息函数。**注意**：多维模型中曲线是"其它维度固定在 0"的**条件切片（conditional slices）**，图的标题已注明；解读时不要说成"总体信息"。
+- **ICC / IIF / TIF**：题目特征曲线、题目信息函数（$I(\theta)=\sum_k \frac{(P_k')^2}{P_k}$）、测验信息函数。**注意**：只有多维模型才是"其它维度固定在 0"的**条件切片（conditional slices）**，图的标题与报告图注会注明；单维模型只有一条 θ 轴，曲线直接画在 θ 上，图注不带"条件切片"。多维时不要把条件切片说成"总体信息"。
+- **怀特图（Wright map）**：左侧被试 MAP 能力分布、右侧题目难度/阈值，共用同一条 logit 纵轴；同一水平线 ≈ 该题在该能力处 50% 通过。用来判断量尺覆盖（被试是否落在题目范围内、两端是否有题、题目是否重叠）。**仅单维模型生成**：多维 θ 无法投影到同一条轴上，报告会说明并指向按维度切片的 ICC；多维请按维度分别看。
 
 ### 6.4 模型选择
 
@@ -576,6 +577,7 @@ IRT 分支在分析前后会做一次独立的数据体检（GUI 与启动器都
 - `*_ability_estimates.csv`：每人的 θ 与其 SE（若配置了 `id_column` 会把被试编号带上）→ 可导出做后续分析（如作为因变量做回归）。
 - `*_item_fit.csv`：S-X² 与 BH 校正 p → 报告"所有题目拟合良好"的依据。
 - `*_icc.png` / `*_iif.png` / `*_tif.png`：300 dpi 图，可直接进论文（记得在表注里说明多维情形下是条件切片）。
+- `*_wright_map.png`（仅单维模型）+ `*_wright_map_data.csv` / `*_wright_persons_data.csv`：怀特图与它的两份数据表（题目阈值位置、被试直方图分箱），图可由 CSV 复现。
 - `*_simulation_truth.csv` / `*_simulation_true_theta.csv`（仅模拟模式）：**真值与真 θ**——用来做参数恢复教学。
 - `*_selected_model.rds`：mirt 拟合对象，可在 R 里继续做 DIF、局部依赖等进阶分析。
 
@@ -632,7 +634,7 @@ EIFA 是探索性的，它的因子会旋转，逐因子去追生成时的 F1/F2
 |---|---|---|---|
 | 数据文件 | `NN_方法_data.csv` | `simulated_ctt_data.csv` / `01_cleaned_items.csv` | `*_simulated_responses.csv` |
 | 核心表 | `NN_方法_*.csv`（10 张左右/方法） | `01`–`05` 系列 CSV | `*_item_parameters / ability / item_fit / model_comparison` 等 |
-| 图 | 箱线图、直方图、交互图、路径图、诊断图 | 碎石图、载荷热图、CFA 路径图 | ICC/IIF/TIF、能力分布图、作答分布图 |
+| 图 | 箱线图、直方图、交互图、路径图、诊断图 | 碎石图、载荷热图、CFA 路径图 | ICC/IIF/TIF、怀特图（仅单维）、能力分布图、作答分布图 |
 | 教学报告 | `stats_report_zh.md`、`00_方法选择决策指南.md` | 控制台 + 运行日志 | `*_report_zh.md` / `*_report_en.md` |
 | Word 结果报告 | `stats_report_zh.docx` / `_en_` | `ctt_report_zh.docx` | 通过启动器生成的中英文报告 |
 | 审计 | `config_snapshot.*`、`run_log.txt`、`run_manifest.json` | 同 | 同 |
@@ -855,7 +857,7 @@ output:  { directory: ./outputs, project_label: my_study, report_language: zh }
 
 - 心理统计：`NN_方法_*.csv`（`NN` 为模块运行顺序，如 `04_independent_t_test.csv`）；教学报告 `stats_report_zh.md`；决策指南 `00_方法选择决策指南.md`。
 - CTT：`01_*`（清洗）、`02_*`（项目分析）、`03_*`（信度与效度）、`04_*`（EFA）、`05_*`（CFA）；图 `efa_scree_plot.png`、`efa_loading_heatmap.png`、`cfa_path_diagram.png`。
-- IRT：`<标签>_<模型>_<时间戳>_*` 前缀统一，含 `item_parameters`、`ability_estimates`、`item_fit`、`model_comparison`、`icc/iif/tif`、`report_zh/en`、`selected_model.rds`。
+- IRT：`<标签>_<模型>_<时间戳>_*` 前缀统一，含 `item_parameters`、`ability_estimates`、`item_fit`、`model_comparison`、`icc/iif/tif`、`wright_map`（仅单维）、`report_zh/en`、`selected_model.rds`。
 - 三个分支共同：`config_snapshot.*`、`run_log.txt`、`run_manifest.json`。
 
 ## 附录 E 术语中英对照

@@ -1312,7 +1312,40 @@ IRT_MISSING_NOTE = ("缺失单元格数与缺失比例（Missing_cells_before / 
                     "（均基于观测反应模式、不做插补），pairwise 仅影响维度启发式中的成对相关（pairwise.complete.obs）。")
 IRT_OVERVIEW_NOTE = "Missing_pct 为进入模型分析样本中各项目的缺失百分比。"
 IRT_MODELS_NOTE = "AIC、BIC 与 SABIC 越低表示相对拟合越好。"
-IRT_PARAMS_NOTE = "阈值参数位于模型潜变量量尺上。"
+IRT_PARAMS_NOTE = ("a = 区分度；b = 难度/阈值（多级模型为 b1…bK，即各类别阈值）；"
+                   "c = 猜测参数（1PL/2PL 由模型固定为 0，只有 3PL 自由估计）。"
+                   "多维模型的 a1…aD 是各维斜率，MDISC = √Σa² 为综合区分度。"
+                   "mirt 的内部截距 d 与上限渐近线 u 不在本表显示，完整原始参数见 *_item_parameters.csv。")
+
+
+def irt_display_params(params: pd.DataFrame) -> pd.DataFrame:
+    """题目参数表的呈现层：把 mirt 列名换成 IRT 习惯字母 a / b / c。
+
+    与 generate_result_reports.py（Word）的 irt_display_params() 及
+    scripts/irt_common.R 的 item_parameters_display() 保持同一口径。
+    坐标口径不变：CSV 仍写 a1..aD / d / g / u / MDISC / b_d…，测试按这些列名做闭式断言。
+    """
+    columns = [str(c) for c in params.columns]
+    a_cols = [c for c in columns if c.startswith("a") and c[1:].isdigit()]
+    b_cols = [c for c in columns if c.startswith("b_d") and (c[3:] == "" or c[3:].isdigit())]
+    out = pd.DataFrame()
+    out["Item"] = params["Item"]
+    if not a_cols:
+        out["a"] = pd.Series([None] * len(params))
+    elif len(a_cols) == 1:
+        out["a"] = params[a_cols[0]]
+    else:
+        for c in a_cols:
+            out[c] = params[c]
+    for c in b_cols:
+        out["b" + c[3:]] = params[c]
+    if "g" in columns:
+        out["c"] = params["g"]
+    if len(a_cols) > 1:
+        for c in ("MDISC", "Primary_dimension"):
+            if c in columns:
+                out[c] = params[c]
+    return out
 IRT_FIT_NOTE = "BH 校正后的 p 值用于提示后续核查，而非自动删除项目。"
 IRT_THETA_NOTE = "MAP 能力估计位于拟合模型的潜变量量尺上；N_valid 为该维度上有效（非缺失）估计的人数。"
 IRT_REL_NOTE = ("边际信度（marginal_rxx）基于模型隐含的误差分布，仅适用于单维模型；"
@@ -1326,9 +1359,21 @@ IRT_METHOD = ("数据来源、项目列、模型、估计器、迭代上限与�
               "本次运行实际采用的估计方法、迭代上限与收敛判据、是否收敛与实际迭代次数、能力量尺的识别方式、"
               "MAP 所用先验，以及 mirt/psych/GPArotation 与 R 的版本，见下一节「估计方法与收敛诊断」，"
               "并同时以机器可读形式写入 run_manifest.json 的 estimation 段。")
-IRT_FIG_CAPS = ["图 1. 项目反应分布。", "图 2. 项目特征曲线（MIRT 为条件切片）。",
-                "图 3. 项目信息函数（MIRT 为条件切片）。", "图 4. 测验信息函数（MIRT 为条件切片）。",
-                "图 5. MAP 能力估计分布。"]
+def irt_figure_captions(multidim: bool) -> list[str]:
+    """图形图注。只有多维 MIRT 的 ICC/IIF/TIF 才是"条件切片"；单维直接画在 θ 上。"""
+    note = "（多维 MIRT：按其他维度取条件切片）" if multidim else ""
+    return ["图 1. 项目反应分布。",
+            f"图 2. 项目特征曲线{note}。",
+            f"图 3. 项目信息函数{note}。",
+            f"图 4. 测验信息函数{note}。",
+            "图 5. MAP 能力估计分布。",
+            "图 6. 怀特图：被试 MAP 能力（左侧横条）与题目难度/阈值（右侧点），共用同一条 logit 纵轴。"]
+
+
+def irt_multidimensional(params: pd.DataFrame) -> bool:
+    """参数表里 a 列多于一个（a1..aD）即为多维模型。"""
+    columns = [str(c) for c in params.columns]
+    return sum(1 for c in columns if c.startswith("a") and c[1:].isdigit()) > 1
 # 估计方法与收敛诊断：estimation_diagnostics.csv 的 Metric 列是 ASCII 键（语言无关、
 # 可直接与 run_manifest.json 的 estimation 段对接），这里只做「键 → 中文标签」的展示映射。
 IRT_DIAG_LABELS = {
@@ -1399,6 +1444,7 @@ def build_irt(folder: Path) -> tuple[str, str]:
         return read_csv_relaxed(folder / f"{prefix}_{suffix}.csv")
 
     models, overview, params = rd("model_comparison"), rd("item_overview"), rd("item_parameters")
+    multidim = irt_multidimensional(params)
     theta, missing = rd("ability_summary"), rd("missingness_summary")
     item_fit, reliability, corr = rd("item_fit"), rd("reliability"), rd("dimension_correlations")
     person_missing, rec = rd("person_missingness"), rd("model_recommendation")
@@ -1441,7 +1487,7 @@ def build_irt(folder: Path) -> tuple[str, str]:
         inner.append(tbl(rec, "模型选择建议（model_recommendation.csv）"))
     if not reliability.empty:
         inner.append(tbl(reliability, "信度估计", IRT_REL_NOTE))
-    inner.append(tbl(params, "项目参数", IRT_PARAMS_NOTE))
+    inner.append(tbl(irt_display_params(params), "项目参数", IRT_PARAMS_NOTE))
     if not eifa_cmp.empty:
         inner.append(tbl(eifa_cmp, "探索性维度比较（EIFA）", "按 BIC 排序；较低值表示更优的相对拟合。"))
     if not eifa_load.empty:
@@ -1472,7 +1518,8 @@ def build_irt(folder: Path) -> tuple[str, str]:
 
     # 图形：SVG 重绘（数据来自 *_icc_data.csv 等）放在对应 PNG 之前
     figs = []
-    for suffix, cap in zip(["response_distributions", "icc", "iif", "tif", "theta_distribution"], IRT_FIG_CAPS):
+    for suffix, cap in zip(["response_distributions", "icc", "iif", "tif", "theta_distribution", "wright_map"],
+                           irt_figure_captions(multidim)):
         if suffix == "icc" and not icc_d.empty:
             cv = curves_svg(icc_d, "Theta", "Probability", "Category", "Item", True, "Theta", "项目特征曲线（ICC）")
             figs.append(svg_figure(cv[0], cv[1] + " 数据：icc_data.csv。") if cv[0] else "")
@@ -1489,7 +1536,9 @@ def build_irt(folder: Path) -> tuple[str, str]:
                 figs.append(histogram_svg_data(est[col], col, f"{prefix}_ability_estimates.csv"))
         figs.append(png_figure(folder, f"{prefix}_{suffix}.png", cap))
     add_section("sec-figs", "图形", "".join(f for f in figs if f))
-    add_section("sec-discussion", "讨论与限制", f"<p>{esc(IRT_DISCUSSION)}</p>")
+    extra_disc = ("<p>本报告为多维模型，未生成怀特图：多维能力无法投影到同一条 logit 轴上，"
+                  "请按维度查看条件切片的项目特征曲线与维度信息函数。</p>") if multidim else ""
+    add_section("sec-discussion", "讨论与限制", f"<p>{esc(IRT_DISCUSSION)}</p>{extra_disc}")
     add_section("sec-repro", "复现与运行环境", repro_section(folder, "irt"))
     doc = assemble_page("通用 IRT 自动分析报告", "自包含 HTML 版｜自动生成初稿，请结合理论与设计解读",
                         nav, "\n".join(secs))

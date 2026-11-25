@@ -13,7 +13,7 @@
     "dimension_count": 1,
     "dimension_mapping": null,
     "estimator": "EM",
-    "max_iterations": 500,
+    "max_iterations": 5000,
     "theta_min": -3,
     "theta_max": 3,
     "theta_points": 121,
